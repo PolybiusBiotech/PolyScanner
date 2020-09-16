@@ -398,9 +398,6 @@ void setup() {
   buzzer_test();
   button_init();
 
-  // if (I2C_SDA > 0) {
-  //   Wire.begin(I2C_SDA, I2C_SCL);
-  // }
   btnscanT.attach_ms(30, button_loop);
 }
 
