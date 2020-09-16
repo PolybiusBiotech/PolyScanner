@@ -363,6 +363,13 @@ bool scanForTag(){
   }
 }
 
+void drawScreenLayout(){
+  tft.setTextColor(TFT_GREEN, TFT_BLACK);
+  tft.fillScreen(TFT_BLACK);
+  tft.drawLine(0, 20, 239, 20, TFT_ORANGE); // Top divider
+  tft.drawLine(0, 309, 239, 309, TFT_ORANGE); // Bottom divider
+}
+
 void setup() {
   Serial.begin(115200);
   Barcode.begin(115200, SERIAL_8N1, 33, 26);
