@@ -361,6 +361,8 @@ bool scanForTag(){
       delay(1000);
     }
   }
+
+  return 1;
 }
 
 void drawScreenLayout(){
