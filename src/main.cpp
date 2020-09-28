@@ -132,7 +132,7 @@ void button_init() {
     pBtns[i] = Button2(g_btns[i]);
     pBtns[i].setPressedHandler(button_callback);
   }
-  pBtns[0].setLongClickHandler([](Button2 &b) {
+  pBtns[2].setLongClickHandler([](Button2 &b) {
     int x = tft.width() / 2;
     int y = tft.height() / 2 - 30;
     int r = digitalRead(TFT_BL);
@@ -156,10 +156,20 @@ void button_init() {
     }
     tft.setTextColor(TFT_GREEN, TFT_BLACK);
     tft.drawString("Press again to wake up", x - 20, y + 30);
+    nfc.shutDown(false, true);
+    
+    // Send command to sleep mode
+    uint8_t activate[] PROGMEM = {0x7E, 0x00, 0x08, 0x01, 0x00, 0xD9, 0xA5, 0xAB, 0xCD};
+    Barcode.write(activate, 9);
+    delay(10);
+
+    while(Barcode.available()){
+      Serial.print(Barcode.read(), HEX);
+    }
 
     delay(6000);
-    digitalWrite(TFT_BL, !r);
-    esp_sleep_enable_ext0_wakeup((gpio_num_t)BUTTON_1, LOW);
+    // digitalWrite(TFT_BL, !r);
+    esp_sleep_enable_ext0_wakeup((gpio_num_t)BUTTON_3, LOW);
     esp_deep_sleep_start();
   });
 }
