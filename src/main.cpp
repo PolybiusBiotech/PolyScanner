@@ -14,10 +14,14 @@
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <WiFiMulti.h>
+#include <WiFiUdp.h>
 #include <HTTPClient.h>
+#include <NTPClient.h>
 
 
 WiFiMulti WiFiMulti;
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP);
 
 const char* root_ca PROGMEM = \
 "-----BEGIN CERTIFICATE-----\n" \
@@ -425,8 +429,13 @@ void drawScreenLayout(){
   tft.setTextColor(TFT_ORANGE);
   tft.fillScreen(TFT_BLACK);
   tft.drawLine(0, 10, 239, 10, TFT_ORANGE); // Top divider
-  tft.setTextDatum(TL_DATUM);
-  tft.drawString("PolyScanner", 0, 0);
+  if(WiFi.status() == WL_CONNECTED){
+    tft.setTextDatum(TL_DATUM);
+    // tft.drawString(timeClient.getFormattedTime(), 0, 0);
+    tft.drawNumber(timeClient.getHours(), 0, 0);
+    tft.drawString(":", 12, 0);
+    tft.drawNumber(timeClient.getMinutes(), 18, 0);
+  }
 
   // Wifi icon
   long wifiStrength = WiFi.RSSI();
@@ -595,6 +604,10 @@ void setup() {
   Serial.println("WiFi connected");
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
+
+  timeClient.begin();
+  timeClient.setTimeOffset(3600);
+  timeClient.update();
 
   drawScreenLayout();
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
