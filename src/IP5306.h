@@ -1,3 +1,7 @@
+#include <Arduino.h>
+#include <HardwareSerial.h>
+#include <Wire.h>
+
 #define IP5306_REG_SYS_0    0x00
 #define IP5306_REG_SYS_1    0x01
 #define IP5306_REG_SYS_2    0x02
