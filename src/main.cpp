@@ -537,6 +537,15 @@ void setup() {
   Serial.begin(115200);
   Barcode.begin(115200, SERIAL_8N1, 33, 26);
 
+  // Send command to exit sleep mode on Barcode scanner
+  uint8_t activate[] PROGMEM = {0x7E, 0x00, 0x08, 0x01, 0x00, 0xD9, 0x00, 0xAB, 0xCD};
+  Barcode.write(activate, 9);
+  delay(10);
+
+  while(Barcode.available()){
+    Serial.print(Barcode.read(), HEX);
+  }
+
   nfc.begin();
 
   uint32_t versiondata = nfc.getFirmwareVersion();
