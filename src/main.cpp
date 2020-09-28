@@ -4,6 +4,7 @@
 #include <SPI.h>
 #include <Adafruit_PN532.h>
 #include "T4_V13.h"
+#include "IP5306.h"
 #include "WiFi.h"
 #include <Button2.h>
 #include <SD.h>
@@ -420,10 +421,116 @@ bool scanForTag(){
 }
 
 void drawScreenLayout(){
-  tft.setTextColor(TFT_GREEN, TFT_BLACK);
+  tft.setTextFont(1);
+  tft.setTextColor(TFT_ORANGE);
   tft.fillScreen(TFT_BLACK);
-  tft.drawLine(0, 20, 239, 20, TFT_ORANGE); // Top divider
+  tft.drawLine(0, 10, 239, 10, TFT_ORANGE); // Top divider
+  tft.setTextDatum(TL_DATUM);
+  tft.drawString("PolyScanner", 0, 0);
+
+  // Wifi icon
+  long wifiStrength = WiFi.RSSI();
+  tft.setTextDatum(TR_DATUM);
+  if(wifiStrength != 0){
+    tft.drawString(String(wifiStrength), tft.width()-16, 0);
+  }
+  else{
+    tft.drawString("X", tft.width()-16, 0);
+  }
+  if(wifiStrength == 0){
+    // No connection
+    tft.drawRect(tft.width() - 13, 8-2, 2, 2, TFT_DARKGREY);
+    tft.drawRect(tft.width() - 10, 8-4, 2, 4, TFT_DARKGREY);
+    tft.drawRect(tft.width() - 7, 8-6, 2, 6, TFT_DARKGREY);
+    tft.drawRect(tft.width() - 4, 8-8, 2, 8, TFT_DARKGREY);
+    tft.drawLine(tft.width() - 13, 8, tft.width() - 2, 0, TFT_RED);
+    tft.drawLine(tft.width() - 14, 8, tft.width() - 3, 0, TFT_RED);
+    tft.drawLine(tft.width() - 13, 0, tft.width() - 2, 8, TFT_RED);
+    tft.drawLine(tft.width() - 14, 0, tft.width() - 3, 8, TFT_RED);
+  }
+  else{
+    if(wifiStrength > -100){
+      // One bar
+      tft.drawRect(tft.width() - 13, 8-2, 2, 2, TFT_ORANGE);
+    }
+    if(wifiStrength > -75){
+      // Two bars
+      tft.drawRect(tft.width() - 10, 8-4, 2, 4, TFT_ORANGE);
+    }
+    if(wifiStrength > -50){
+      // Three bars
+      tft.drawRect(tft.width() - 7, 8-6, 2, 6, TFT_ORANGE);
+    }
+    if(wifiStrength > -30){
+      // Four (full) bars
+      tft.drawRect(tft.width() - 4, 8-8, 2, 8, TFT_ORANGE);
+    }
+  }
+
+  // Battery icon
+  uint8_t xpos = tft.width() - 17 - (6*3) - 5;
+
+  // Draw battery box
+  tft.drawFastVLine(xpos, 7-5, 4, TFT_ORANGE);
+  tft.drawPixel(xpos-1, 7-1, TFT_ORANGE);
+  tft.drawPixel(xpos-1, 7-6, TFT_ORANGE);
+  tft.drawFastHLine(xpos-17, 7, 16, TFT_ORANGE);
+  tft.drawFastHLine(xpos-17, 7-7, 16, TFT_ORANGE);
+  tft.drawFastVLine(xpos-17, 7-6, 6, TFT_ORANGE);
+  // Fill box depending on charge
+  uint8_t batteryLevel = IP5306_LEDS2PCT(IP5306_GetLevelLeds());
+  if(batteryLevel == 25){
+    tft.fillRect(xpos-16, 7-6, 4, 6, TFT_ORANGE);
+  }
+  else if(batteryLevel == 50){
+    tft.fillRect(xpos-16, 7-6, 8, 6, TFT_ORANGE);
+  }
+  else if(batteryLevel == 75){
+    tft.fillRect(xpos-16, 7-6, 12, 6, TFT_ORANGE);
+  }
+  else if(batteryLevel == 100){
+    tft.fillRect(xpos-16, 7-6, 15, 6, TFT_ORANGE);
+    tft.drawFastVLine(xpos-1, 7-5, 4, TFT_ORANGE);
+  }
+  // Add bolt if currently charging
+  if(!IP5306_GetBatteryFull() && IP5306_GetPowerSource()){
+    tft.drawLine(xpos-7, 7-2, xpos-9, 7-4, TFT_GREEN);
+    tft.drawLine(xpos-10, 7-3, xpos-11, 7-4, TFT_GREEN);
+    tft.drawLine(xpos-12, 7-3, xpos-14, 7-5, TFT_GREEN);
+  }
+  // Add plug if docked
+  if(IP5306_GetPowerSource()){
+    tft.fillRect(xpos-22, 7-7, 4, 2, TFT_ORANGE);
+    tft.fillRect(xpos-22, 7-1, 4, 2, TFT_ORANGE);
+    tft.fillRect(xpos-22, 7-5, 2, 4, TFT_ORANGE);
+    tft.fillRect(xpos-27, 7-4, 5, 2, TFT_ORANGE);
+  }
+  
+
+
+  // ASCII Logo
+  tft.drawString(PROGMEM " _____      _       _     _", 0, 20);
+  tft.drawString(PROGMEM "|  __ \\    | |     | |   (_)", 0, 20+8);
+  tft.drawString(PROGMEM "| |__) |__ | |_   _| |__  _ _   _ ___", 0, 20+(8*2));
+  tft.drawString(PROGMEM "|  ___/ _ \\| | | | | '_ \\| | | | / __|", 0, 20+(8*3));
+  tft.drawString(PROGMEM "| |  | (_) | | |_| | |_) | | |_| \\__ \\", 0, 20+(8*4));
+  tft.drawString(PROGMEM "|_|   \\___/|_|\\__, |_.__/|_|\\__,_|___/", 0, 20+(8*5));
+  tft.drawString(PROGMEM "               __/ |                  ", 0, 20+(8*6));
+  tft.drawString(PROGMEM "              |___/                   ", 0, 20+(8*7));
+  tft.drawString(PROGMEM "______ _       _            _", 35, 84);
+  tft.drawString(PROGMEM "| ___ (_)     | |          | |", 35, 84+8);
+  tft.drawString(PROGMEM "| |_/ /_  ___ | |_ ___  ___| |__", 35, 84+(8*2));
+  tft.drawString(PROGMEM "| ___ \\ |/ _ \\| __/ _ \\/ __| '_ \\", 35, 84+(8*3));
+  tft.drawString(PROGMEM "| |_/ / | (_) | ||  __/ (__| | | |", 35, 84+(8*4));
+  tft.drawString(PROGMEM "\\____/|_|\\___/ \\__\\___|\\___|_| |_|", 35, 84+(8*5));
+
   tft.drawLine(0, 309, 239, 309, TFT_ORANGE); // Bottom divider
+  tft.setTextDatum(BL_DATUM);
+  tft.drawString("TEST BUZZER", 0, 320);
+  tft.setTextDatum(BC_DATUM);
+  tft.drawString("READ RFID", tft.width()/2, 320);
+  tft.setTextDatum(BR_DATUM);
+  tft.drawString("TRY GET REQUEST", tft.width(), 320);
 }
 
 void setup() {
