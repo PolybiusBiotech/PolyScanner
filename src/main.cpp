@@ -623,7 +623,17 @@ void setup() {
 
   timeClient.begin();
   timeClient.setTimeOffset(3600);
-  timeClient.update();
+  if(!timeClient.update()){
+    log_w("Could not connect to NTP server, waiting 3 seconds then trying again.");
+    delay(3000);
+    if(!timeClient.update()){
+      log_w("Could not connect a second time, aborting");
+    }
+    log_d("NTP Updated");
+  }
+  else{
+    log_d("NTP Updated");
+  }
 
   drawScreenLayout();
   clearScreen();
