@@ -659,6 +659,7 @@ void loop() {
     state = 0;
     // wifi_scan();
     drawScreenLayout();
+    clearScreen();
     tft.setTextColor(TFT_GREEN, TFT_BLACK);
     tft.setTextDatum(MC_DATUM);
     tft.drawString("Read RFID", tft.width() / 2, tft.height() / 2);
@@ -670,6 +671,7 @@ void loop() {
   else if(state == 2){
     state = 0;
     drawScreenLayout();
+    clearScreen();
     tft.setTextColor(TFT_GREEN, TFT_BLACK);
     tft.setTextDatum(MC_DATUM);
     tft.drawString("Buzzer Test", tft.width() / 2, tft.height() / 2);
