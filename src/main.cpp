@@ -440,8 +440,9 @@ bool scanForTag(){
 void drawScreenLayout(){
   tft.setTextFont(1);
   tft.setTextColor(TFT_ORANGE);
-  tft.fillScreen(TFT_BLACK);
-  tft.drawLine(0, 10, 239, 10, TFT_ORANGE); // Top divider
+  // tft.fillScreen(TFT_BLACK);
+  tft.fillRect(0, 0, tft.width(), 10, TFT_BLACK);
+  tft.drawFastHLine(0, 10, tft.width(), TFT_ORANGE); // Top divider
   if(WiFi.status() == WL_CONNECTED){
     tft.setTextDatum(TL_DATUM);
     // tft.drawString(timeClient.getFormattedTime(), 0, 0);
@@ -531,21 +532,22 @@ void drawScreenLayout(){
 
 
   // ASCII Logo
-  tft.drawString(PROGMEM " _____      _       _     _", 0, 20);
-  tft.drawString(PROGMEM "|  __ \\    | |     | |   (_)", 0, 20+8);
-  tft.drawString(PROGMEM "| |__) |__ | |_   _| |__  _ _   _ ___", 0, 20+(8*2));
-  tft.drawString(PROGMEM "|  ___/ _ \\| | | | | '_ \\| | | | / __|", 0, 20+(8*3));
-  tft.drawString(PROGMEM "| |  | (_) | | |_| | |_) | | |_| \\__ \\", 0, 20+(8*4));
-  tft.drawString(PROGMEM "|_|   \\___/|_|\\__, |_.__/|_|\\__,_|___/", 0, 20+(8*5));
-  tft.drawString(PROGMEM "               __/ |                  ", 0, 20+(8*6));
-  tft.drawString(PROGMEM "              |___/                   ", 0, 20+(8*7));
-  tft.drawString(PROGMEM "______ _       _            _", 35, 84);
-  tft.drawString(PROGMEM "| ___ (_)     | |          | |", 35, 84+8);
-  tft.drawString(PROGMEM "| |_/ /_  ___ | |_ ___  ___| |__", 35, 84+(8*2));
-  tft.drawString(PROGMEM "| ___ \\ |/ _ \\| __/ _ \\/ __| '_ \\", 35, 84+(8*3));
-  tft.drawString(PROGMEM "| |_/ / | (_) | ||  __/ (__| | | |", 35, 84+(8*4));
-  tft.drawString(PROGMEM "\\____/|_|\\___/ \\__\\___|\\___|_| |_|", 35, 84+(8*5));
+  // tft.drawString(PROGMEM " _____      _       _     _", 0, 20);
+  // tft.drawString(PROGMEM "|  __ \\    | |     | |   (_)", 0, 20+8);
+  // tft.drawString(PROGMEM "| |__) |__ | |_   _| |__  _ _   _ ___", 0, 20+(8*2));
+  // tft.drawString(PROGMEM "|  ___/ _ \\| | | | | '_ \\| | | | / __|", 0, 20+(8*3));
+  // tft.drawString(PROGMEM "| |  | (_) | | |_| | |_) | | |_| \\__ \\", 0, 20+(8*4));
+  // tft.drawString(PROGMEM "|_|   \\___/|_|\\__, |_.__/|_|\\__,_|___/", 0, 20+(8*5));
+  // tft.drawString(PROGMEM "               __/ |                  ", 0, 20+(8*6));
+  // tft.drawString(PROGMEM "              |___/                   ", 0, 20+(8*7));
+  // tft.drawString(PROGMEM "______ _       _            _", 35, 84);
+  // tft.drawString(PROGMEM "| ___ (_)     | |          | |", 35, 84+8);
+  // tft.drawString(PROGMEM "| |_/ /_  ___ | |_ ___  ___| |__", 35, 84+(8*2));
+  // tft.drawString(PROGMEM "| ___ \\ |/ _ \\| __/ _ \\/ __| '_ \\", 35, 84+(8*3));
+  // tft.drawString(PROGMEM "| |_/ / | (_) | ||  __/ (__| | | |", 35, 84+(8*4));
+  // tft.drawString(PROGMEM "\\____/|_|\\___/ \\__\\___|\\___|_| |_|", 35, 84+(8*5));
 
+  tft.fillRect(0, 310, tft.width(), 10, TFT_BLACK);
   tft.drawLine(0, 309, 239, 309, TFT_ORANGE); // Bottom divider
   tft.setTextDatum(BL_DATUM);
   tft.drawString("TEST BUZZER", 0, 320);
@@ -553,6 +555,9 @@ void drawScreenLayout(){
   tft.drawString("READ RFID", tft.width()/2, 320);
   tft.setTextDatum(BR_DATUM);
   tft.drawString("TRY GET REQUEST", tft.width(), 320);
+
+  tft.setTextColor(TFT_GREEN);
+  tft.setCursor(0,20);
 }
 
 void setup() {
