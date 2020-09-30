@@ -450,9 +450,21 @@ void drawScreenLayout(){
   if(WiFi.status() == WL_CONNECTED){
     tft.setTextDatum(TL_DATUM);
     // tft.drawString(timeClient.getFormattedTime(), 0, 0);
-    tft.drawNumber(timeClient.getHours(), 0, 0);
-    tft.drawString(":", 12, 0);
-    tft.drawNumber(timeClient.getMinutes(), 18, 0);
+    if(timeClient.getHours() < 10){
+      tft.drawNumber(0, 0, 0);
+      tft.drawNumber(timeClient.getHours(), 7, 0);
+    }
+    else{
+      tft.drawNumber(timeClient.getHours(), 0, 0);
+    }
+    tft.drawString(":", 13, 0);
+    if(timeClient.getMinutes() < 10){
+      tft.drawNumber(0, 18, 0);
+      tft.drawNumber(timeClient.getMinutes(), 25, 0);
+    }
+    else{
+      tft.drawNumber(timeClient.getMinutes(), 18, 0);
+    }
   }
 
   // Wifi icon
