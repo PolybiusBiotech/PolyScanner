@@ -17,6 +17,19 @@
 #include <WiFiUdp.h>
 #include <HTTPClient.h>
 #include <NTPClient.h>
+#include <ArduinoJson.h>
+#include <SimpleTime.h>
+
+// Arduino Json Setup
+struct SpiRamAllocator {
+  void* allocate(size_t size) {
+    return heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
+  }
+  void deallocate(void* pointer) {
+    heap_caps_free(pointer);
+  }
+};
+using SpiRamJsonDocument = BasicJsonDocument<SpiRamAllocator>;
 
 
 WiFiMulti WiFiMulti;
@@ -622,6 +635,12 @@ void setup() {
   button_init();
 
   btnscanT.attach_ms(30, button_loop);
+
+  log_d("Total heap: %d", ESP.getHeapSize());
+  log_d("Free heap: %d", ESP.getFreeHeap());
+  log_d("Total PSRAM: %d", ESP.getPsramSize());
+  log_d("Free PSRAM: %d", ESP.getFreePsram());
+  log_d("Used PSRAM: %d", ESP.getPsramSize() - ESP.getFreePsram());
 }
 
 void loop() {
@@ -697,27 +716,51 @@ void loop() {
                   // file found at server
                   if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
                     String payload = https.getString();
-                    Serial.println(payload);
+                    log_d("Payload: %s",payload);
                     drawScreenLayout();
-                    tft.setTextColor(TFT_GREEN, TFT_BLACK);
-                    tft.setTextDatum(TL_DATUM);
-                    if(payload.length()<=40){
-                      tft.drawString(payload, 0, tft.height() / 2);
+                    SpiRamJsonDocument doc(JSON_OBJECT_SIZE(5) + 90);
+                    DeserializationError error = deserializeJson(doc, payload);
+                    // Test if parsing succeeds.
+                    if (error) {
+                      Serial.print(F("deserializeJson() failed: "));
+                      Serial.println(error.c_str());
+                      return;
                     }
-                    else{
-                      uint8_t line = 0;
-                      uint8_t stringlen = 0;
-                      for(uint8_t x = 0; x < payload.length(); x += 40){
-                        if(payload.length() - x < 40){
-                          stringlen = payload.length();
-                        }
-                        else{
-                          stringlen = 40 * (x + 1);
-                        }
-                        tft.drawString(payload.substring(40*line, stringlen), 0, (tft.height() / 2)+(8*line));
-                        line++;
-                      }
-                    }
+
+                    const char* coin = doc["coin"];
+                    long reserved = doc["reserved"];
+                    long claimed = doc["claimed"];
+
+                    const char* coinDetails[78];
+                    memset(coinDetails, 0, 78);
+
+                    tft.println(F("\n\nCoin ID:"));
+                    tft.println(coin);
+                    tft.println(F("\nReserved on:"));
+                    tft.print(hour(reserved));
+                    tft.print(F(":"));
+                    tft.print(minute(reserved));
+                    tft.print(F(":"));
+                    tft.print(second(reserved));
+                    tft.print(F("  "));
+                    tft.print(day(reserved));
+                    tft.print(F("/"));
+                    tft.print(month(reserved));
+                    tft.print(F("/"));
+                    tft.print(year(reserved));
+                    tft.println(F("\n\nClaimed on:"));
+                    tft.print(hour(claimed));
+                    tft.print(F(":"));
+                    tft.print(minute(claimed));
+                    tft.print(F(":"));
+                    tft.print(second(claimed));
+                    tft.print(F("  "));
+                    tft.print(day(claimed));
+                    tft.print(F("/"));
+                    tft.print(month(claimed));
+                    tft.print(F("/"));
+                    tft.print(year(claimed));
+
                   }
                 } else {
                   Serial.printf("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
