@@ -728,7 +728,7 @@ void loop() {
                   // file found at server
                   if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
                     String payload = https.getString();
-                    log_d("Payload: %s",payload);
+                    log_d("Payload: %s", payload.c_str());
                     drawScreenLayout();
                     clearScreen();
                     SpiRamJsonDocument doc(JSON_OBJECT_SIZE(5) + 90);
