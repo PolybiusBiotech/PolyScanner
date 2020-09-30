@@ -32,7 +32,7 @@ struct SpiRamAllocator {
 using SpiRamJsonDocument = BasicJsonDocument<SpiRamAllocator>;
 
 
-WiFiMulti WiFiMulti;
+WiFiMulti WiFimulti;
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
 
@@ -613,9 +613,9 @@ void setup() {
   tft.drawString("BOOTING, PLEASE WAIT", tft.width() / 2, tft.height() / 2);
 
   // SET UP WIFI AND STUFF FOR RESTING REST API
-  WiFiMulti.addAP("Bifrost", "lolbutts");
+  WiFimulti.addAP("Bifrost", "lolbutts");
   log_d("WiFi Connecting..."); 
-  while(WiFiMulti.run() != WL_CONNECTED) {
+  while(WiFimulti.run() != WL_CONNECTED) {
     log_d(".");
     delay(500);
   }
