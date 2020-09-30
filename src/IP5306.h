@@ -115,7 +115,7 @@ int ip5306_set_reg(uint8_t reg, uint8_t value){
 uint8_t ip5306_get_bits(uint8_t reg, uint8_t index, uint8_t bits){
     int value = ip5306_get_reg(reg);
     if(value < 0){
-        Serial.printf("ip5306_get_bits fail: 0x%02x\n", reg);
+        log_e("ip5306_get_bits fail: 0x%02x\n", reg);
         return 0;
     }
     return (value >> index) & ((1 << bits)-1);
@@ -125,13 +125,13 @@ void ip5306_set_bits(uint8_t reg, uint8_t index, uint8_t bits, uint8_t value){
     uint8_t mask = (1 << bits) - 1;
     int v = ip5306_get_reg(reg);
     if(v < 0){
-        Serial.printf("ip5306_get_reg fail: 0x%02x\n", reg);
+        log_e("ip5306_get_reg fail: 0x%02x\n", reg);
         return;
     }
     v &= ~(mask << index);
     v |= ((value & mask) << index);
     if(ip5306_set_reg(reg, v)){
-        Serial.printf("ip5306_set_bits fail: 0x%02x\n", reg);
+        log_e("ip5306_set_bits fail: 0x%02x\n", reg);
     }
 }
 
@@ -139,32 +139,25 @@ void printIP5306Stats(){
     bool usb = IP5306_GetPowerSource();
     bool full = IP5306_GetBatteryFull();
     uint8_t leds = IP5306_GetLevelLeds();
-    Serial.printf("IP5306: Power Source: %s, Battery State: %s, Battery Available: %u%%\n", usb?"USB":"BATTERY", full?"CHARGED":(usb?"CHARGING":"DISCHARGING"), IP5306_LEDS2PCT(leds));
+    log_d("IP5306: Power Source: %s, Battery State: %s, Battery Available: %u%%", usb?"USB":"BATTERY", full?"CHARGED":(usb?"CHARGING":"DISCHARGING"), IP5306_LEDS2PCT(leds));
     // tft.drawString("IP5306: Power Source: " + String(usb?"USB":"BATTERY"), 0, (tft.height() / 2)+10);
     // tft.drawString("Battery State: " + String(full?"CHARGED":(usb?"CHARGING":"DISCHARGING")), 0, (tft.height() / 2)+20);
     // tft.drawString("Battery Available: %" + String(IP5306_LEDS2PCT(leds)), 0, (tft.height() / 2)+30);
 }
 
 void printIP5306Settings(){
-    Serial.println("IP5306 Settings:");
-    Serial.printf("  KeyOff: %s\n", IP5306_GetKeyOffEnabled()?"Enabled":"Disabled");
-    Serial.printf("  BoostOutput: %s\n", IP5306_GetBoostOutputEnabled()?"Enabled":"Disabled");
-    Serial.printf("  PowerOnLoad: %s\n", IP5306_GetPowerOnLoadEnabled()?"Enabled":"Disabled");
-    Serial.printf("  Charger: %s\n", IP5306_GetChargerEnabled()?"Enabled":"Disabled");
-    Serial.printf("  Boost: %s\n", IP5306_GetBoostEnabled()?"Enabled":"Disabled");
-    Serial.printf("  LowBatShutdown: %s\n", IP5306_GetLowBatShutdownEnable()?"Enabled":"Disabled");
-    Serial.printf("  ShortPressBoostSwitch: %s\n", IP5306_GetShortPressBoostSwitchEnable()?"Enabled":"Disabled");
-    Serial.printf("  FlashlightClicks: %s\n", IP5306_GetFlashlightClicks()?"Long Press":"Double Press");
-    Serial.printf("  BoostOffClicks: %s\n", IP5306_GetBoostOffClicks()?"Double Press":"Long Press");
-    Serial.printf("  BoostAfterVin: %s\n", IP5306_GetBoostAfterVin()?"Open":"Not Open");
-    Serial.printf("  LongPressTime: %s\n", IP5306_GetLongPressTime()?"3s":"2s");
-    Serial.printf("  ChargeUnderVoltageLoop: %.2fV\n", 4.45 + (IP5306_GetChargeUnderVoltageLoop() * 0.05));
-    Serial.printf("  ChargeCCLoop: %s\n", IP5306_GetChargeCCLoop()?"Vin":"Bat");
-    Serial.printf("  VinCurrent: %dmA\n", (IP5306_GetVinCurrent() * 100) + 50);
-    Serial.printf("  VoltagePressure: %dmV\n", IP5306_GetVoltagePressure()*14);
-    Serial.printf("  ChargingFullStopVoltage: %u\n", IP5306_GetChargingFullStopVoltage());
-    Serial.printf("  LightLoadShutdownTime: %u\n", IP5306_GetLightLoadShutdownTime());
-    Serial.printf("  EndChargeCurrentDetection: %u\n", IP5306_GetEndChargeCurrentDetection());
-    Serial.printf("  ChargeCutoffVoltage: %u\n", IP5306_GetChargeCutoffVoltage());
-    Serial.println();
+    log_d("IP5306 Settings:\n  KeyOff: %s\n  BoostOutput: %s\n  PowerOnLoad: %s\n  Charger: %s\n" \
+    "  Boost: %s\n  LowBatShutdown: %s\n  ShortPressBoostSwitch: %s\n  FlashlightClicks: %s\n" \
+    "  BoostOffClicks: %s\n  BoostAfterVin: %s\n  LongPressTime: %s\n  ChargeUnderVoltageLoop: %.2fV\n" \
+    "  ChargeCCLoop: %s\n  VinCurrent: %dmA\n  VoltagePressure: %dmV\n  ChargingFullStopVoltage: %u\n" \
+    "  LightLoadShutdownTime: %u\n  EndChargeCurrentDetection: %u\n  ChargeCutoffVoltage: %u",
+    IP5306_GetKeyOffEnabled()?"Enabled":"Disabled", IP5306_GetBoostOutputEnabled()?"Enabled":"Disabled",
+    IP5306_GetPowerOnLoadEnabled()?"Enabled":"Disabled", IP5306_GetChargerEnabled()?"Enabled":"Disabled",
+    IP5306_GetBoostEnabled()?"Enabled":"Disabled", IP5306_GetLowBatShutdownEnable()?"Enabled":"Disabled",
+    IP5306_GetShortPressBoostSwitchEnable()?"Enabled":"Disabled", IP5306_GetFlashlightClicks()?"Long Press":"Double Press",
+    IP5306_GetBoostOffClicks()?"Double Press":"Long Press", IP5306_GetBoostAfterVin()?"Open":"Not Open",
+    IP5306_GetLongPressTime()?"3s":"2s", 4.45 + (IP5306_GetChargeUnderVoltageLoop() * 0.05),
+    IP5306_GetChargeCCLoop()?"Vin":"Bat", (IP5306_GetVinCurrent() * 100) + 50,
+    IP5306_GetVoltagePressure()*14, IP5306_GetChargingFullStopVoltage(), IP5306_GetLightLoadShutdownTime(), 
+    IP5306_GetEndChargeCurrentDetection(), IP5306_GetChargeCutoffVoltage());
 }

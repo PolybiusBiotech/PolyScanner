@@ -137,7 +137,7 @@ void button_handle(uint8_t gpio) {
 void button_callback(Button2 &b) {
   for (int i = 0; i < sizeof(g_btns) / sizeof(g_btns[0]); ++i) {
     if (pBtns[i] == b) {
-      Serial.printf("btn: %u press\n", pBtns[i].getAttachPin());
+      log_d("btn: %u press", pBtns[i].getAttachPin());
       button_handle(pBtns[i].getAttachPin());
     }
   }
@@ -272,7 +272,7 @@ void wifi_scan() {
   } else {
     tft.setTextDatum(TL_DATUM);
     tft.setCursor(0, 0);
-    Serial.printf("Fount %d net\n", n);
+    log_d("Fount %d net\n", n);
     for (int i = 0; i < n; ++i) {
       sprintf(buff, "%2d %s (%d)", i + 1, WiFi.SSID(i).c_str(),
               WiFi.RSSI(i));
@@ -416,19 +416,17 @@ bool scanForTag(){
   
   if (success) {
     // Display some basic information about the card
-    Serial.println("Found an ISO14443A card");
-    Serial.print("  UID Length: ");Serial.print(uidLength, DEC);Serial.println(" bytes");
-    Serial.print("  UID Value: ");
-    nfc.PrintHex(uid, uidLength);
-    Serial.println("");
+    log_d("Found an ISO14443A card");
+    log_d("  UID Length: %d bytes", uidLength);
+    log_d("  UID Value: %02X:%02X:%02X:%02X:%02X:%02X:%02X", uid[0], uid[1], uid[2], uid[3], uid[4], uid[5], uid[6]);
     
     if (uidLength == 7)
     {
       if(activateBarcodeScan(1000)){
-        Serial.println("Activated scan");
+        log_d("Activated scan");
       }
       else{
-        Serial.println("Couldn't activate scan");
+        log_w("Couldn't activate scan");
       }
       delay(1000);
     }
@@ -580,13 +578,12 @@ void setup() {
 
   uint32_t versiondata = nfc.getFirmwareVersion();
   if (! versiondata) {
-    Serial.print("Didn't find PN53x board");
+    log_e("Didn't find PN53x board");
     while (1); // halt
   }
   // Got ok data, print it out!
-  Serial.print("Found chip PN5"); Serial.println((versiondata>>24) & 0xFF, HEX); 
-  Serial.print("Firmware ver. "); Serial.print((versiondata>>16) & 0xFF, DEC); 
-  Serial.print('.'); Serial.println((versiondata>>8) & 0xFF, DEC);
+  log_d("Found chip PN5%x", (versiondata>>24) & 0xFF); 
+  log_d("Firmware ver: %d.%d", (versiondata>>16) & 0xFF, (versiondata>>8) & 0xFF);
   
   // configure board to read RFID tags
   nfc.SAMConfig();
@@ -617,15 +614,12 @@ void setup() {
 
   // SET UP WIFI AND STUFF FOR RESTING REST API
   WiFiMulti.addAP("Bifrost", "lolbutts");
-  Serial.print("WiFi Connecting..."); 
+  log_d("WiFi Connecting..."); 
   while(WiFiMulti.run() != WL_CONNECTED) {
-    Serial.print(".");
+    log_d(".");
     delay(500);
   }
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
+  log_d("WiFi connected, IP address: %s", WiFi.localIP().toString().c_str());
 
   timeClient.begin();
   timeClient.setTimeOffset(3600);
@@ -694,11 +688,9 @@ void loop() {
     
     if (success) {
       // Display some basic information about the card
-      Serial.println("Found an ISO14443A card");
-      Serial.print("  UID Length: ");Serial.print(uidLength, DEC);Serial.println(" bytes");
-      Serial.print("  UID Value: ");
-      nfc.PrintHex(uid, uidLength);
-      Serial.println("");
+      log_d("Found an ISO14443A card");
+      log_d("  UID Length: %d bytes", uidLength);
+      log_d("  UID Value: %02X:%02X:%02X:%02X:%02X:%02X:%02X", uid[0], uid[1], uid[2], uid[3], uid[4], uid[5], uid[6]);
       
       if (uidLength == 7)
       {
@@ -718,67 +710,57 @@ void loop() {
             {
               // Add a scoping block for HTTPClient https to make sure it is destroyed before WiFiClientSecure *client is 
               HTTPClient https;
-              Serial.print("[HTTPS] begin...\n");
+              log_d("[HTTPS] begin...\n");
               if (https.begin(*client, String("https://") + String(buffer))) {  // HTTPS
-                Serial.print("[HTTPS] GET...\n");
+                log_d("[HTTPS] GET...\n");
                 // start connection and send HTTP header
                 int httpCode = https.GET();
                 // httpCode will be negative on error
                 if (httpCode > 0) {
                   // HTTP header has been send and Server response header has been handled
-                  Serial.printf("[HTTPS] GET... code: %d\n", httpCode);
+                  log_d("[HTTPS] GET... code: %d\n", httpCode);
                   // file found at server
                   if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
                     String payload = https.getString();
                     log_d("Payload: %s", payload.c_str());
-                    drawScreenLayout();
-                    clearScreen();
                     SpiRamJsonDocument doc(JSON_OBJECT_SIZE(5) + 90);
                     DeserializationError error = deserializeJson(doc, payload);
                     // Test if parsing succeeds.
                     if (error) {
-                      Serial.print(F("deserializeJson() failed: "));
-                      Serial.println(error.c_str());
+                      log_e("deserializeJson() failed: %s", error.c_str());
                       return;
                     }
 
                     const char* coin = doc["coin"];
                     long reserved = doc["reserved"];
                     long claimed = doc["claimed"];
+                    long modified = doc["modified"];
+                    float value = doc["value"];
 
                     const char* coinDetails[78];
                     memset(coinDetails, 0, 78);
 
-                    tft.println(F("\n\nCoin ID:"));
-                    tft.println(coin);
-                    tft.println(F("\nReserved on:"));
-                    tft.print(hour(reserved));
-                    tft.print(F(":"));
-                    tft.print(minute(reserved));
-                    tft.print(F(":"));
-                    tft.print(second(reserved));
-                    tft.print(F("  "));
-                    tft.print(day(reserved));
-                    tft.print(F("/"));
-                    tft.print(month(reserved));
-                    tft.print(F("/"));
-                    tft.print(year(reserved));
-                    tft.println(F("\n\nClaimed on:"));
-                    tft.print(hour(claimed));
-                    tft.print(F(":"));
-                    tft.print(minute(claimed));
-                    tft.print(F(":"));
-                    tft.print(second(claimed));
-                    tft.print(F("  "));
-                    tft.print(day(claimed));
-                    tft.print(F("/"));
-                    tft.print(month(claimed));
-                    tft.print(F("/"));
-                    tft.print(year(claimed));
+                    drawScreenLayout();
+                    clearScreen();
 
+                    tft.printf("Coin ID:\n  %s\n", coin);
+                    tft.printf("\nUID Value:\n  %02X:%02X:%02X:%02X:%02X:%02X:%02X\n", uid[0], uid[1], uid[2], uid[3], uid[4], uid[5], uid[6]);
+                    tft.printf("\nCurrent Value\n  %f\n", value);
+                    if(reserved != 0){
+                      tft.printf("\nReserved on:\n  %d:%d:%d %d/%d/%d\n", hour(reserved),
+                      minute(reserved), second(reserved), day(reserved), month(reserved), year(reserved));
+                    }
+                    if(claimed != 0){
+                      tft.printf("\nClaimed on:\n  %d:%d:%d %d/%d/%d\n", hour(claimed),
+                      minute(claimed), second(claimed), day(claimed), month(claimed), year(claimed));
+                    }
+                    if(modified != 0){
+                      tft.printf("\n\nLast modified:\n  %d:%d:%d %d/%d/%d\n", hour(modified),
+                      minute(modified), second(modified), day(modified), month(modified), year(modified));
+                    }
                   }
                 } else {
-                  Serial.printf("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
+                  log_e("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
                   drawScreenLayout();
                   clearScreen();
                   tft.setTextColor(TFT_GREEN, TFT_BLACK);
@@ -787,7 +769,7 @@ void loop() {
                 }
                 https.end();
               } else {
-                Serial.printf("[HTTPS] Unable to connect\n");
+                log_w("[HTTPS] Unable to connect\n");
                 drawScreenLayout();
                 clearScreen();
                 tft.setTextColor(TFT_GREEN, TFT_BLACK);
@@ -798,7 +780,7 @@ void loop() {
             }
             delete client;
           } else {
-            Serial.println("Unable to create client");
+            log_e("Unable to create client");
             drawScreenLayout();
             clearScreen();
             tft.setTextColor(TFT_GREEN, TFT_BLACK);
