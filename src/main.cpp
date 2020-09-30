@@ -437,6 +437,12 @@ bool scanForTag(){
   return 1;
 }
 
+void clearScreen(){
+  tft.fillRect(0, 11, tft.width(), 308-11, TFT_BLACK);
+  tft.setTextColor(TFT_GREEN);
+  tft.setCursor(0,15);
+}
+
 void drawScreenLayout(){
   tft.setTextFont(1);
   tft.setTextColor(TFT_ORANGE);
@@ -555,9 +561,6 @@ void drawScreenLayout(){
   tft.drawString("READ RFID", tft.width()/2, 320);
   tft.setTextDatum(BR_DATUM);
   tft.drawString("TRY GET REQUEST", tft.width(), 320);
-
-  tft.setTextColor(TFT_GREEN);
-  tft.setCursor(0,20);
 }
 
 void setup() {
@@ -607,6 +610,7 @@ void setup() {
   printIP5306Settings();
 
   drawScreenLayout();
+  clearScreen();
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
   tft.setTextDatum(MC_DATUM);
   tft.drawString("BOOTING, PLEASE WAIT", tft.width() / 2, tft.height() / 2);
@@ -628,6 +632,7 @@ void setup() {
   timeClient.update();
 
   drawScreenLayout();
+  clearScreen();
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
   tft.setTextDatum(MC_DATUM);
   tft.drawString("WiFi Connected, IP:", tft.width() / 2, tft.height() / 2);
@@ -674,6 +679,7 @@ void loop() {
     state = 0;
 
     drawScreenLayout();
+    clearScreen();
     tft.setTextColor(TFT_GREEN, TFT_BLACK);
     tft.setTextDatum(MC_DATUM);
     tft.drawString("Please present coin", tft.width() / 2, tft.height() / 2);
@@ -695,6 +701,7 @@ void loop() {
       if (uidLength == 7)
       {
         drawScreenLayout();
+        clearScreen();
         tft.setTextColor(TFT_GREEN, TFT_BLACK);
         tft.setTextDatum(MC_DATUM);
         tft.drawString("Coin read, accessing data", tft.width() / 2, tft.height() / 2);
@@ -723,6 +730,7 @@ void loop() {
                     String payload = https.getString();
                     log_d("Payload: %s",payload);
                     drawScreenLayout();
+                    clearScreen();
                     SpiRamJsonDocument doc(JSON_OBJECT_SIZE(5) + 90);
                     DeserializationError error = deserializeJson(doc, payload);
                     // Test if parsing succeeds.
@@ -770,6 +778,7 @@ void loop() {
                 } else {
                   Serial.printf("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
                   drawScreenLayout();
+                  clearScreen();
                   tft.setTextColor(TFT_GREEN, TFT_BLACK);
                   tft.setTextDatum(MC_DATUM);
                   tft.drawString("Network Error", tft.width() / 2, tft.height() / 2);
@@ -778,6 +787,7 @@ void loop() {
               } else {
                 Serial.printf("[HTTPS] Unable to connect\n");
                 drawScreenLayout();
+                clearScreen();
                 tft.setTextColor(TFT_GREEN, TFT_BLACK);
                 tft.setTextDatum(MC_DATUM);
                 tft.drawString("Network Error", tft.width() / 2, tft.height() / 2);
@@ -788,6 +798,7 @@ void loop() {
           } else {
             Serial.println("Unable to create client");
             drawScreenLayout();
+            clearScreen();
             tft.setTextColor(TFT_GREEN, TFT_BLACK);
             tft.setTextDatum(MC_DATUM);
             tft.drawString("Network Error", tft.width() / 2, tft.height() / 2);
@@ -795,6 +806,7 @@ void loop() {
         }
         else{
           drawScreenLayout();
+          clearScreen();
           tft.setTextColor(TFT_GREEN, TFT_BLACK);
           tft.setTextDatum(MC_DATUM);
           tft.drawString("Coin had no address", tft.width() / 2, tft.height() / 2);
@@ -803,6 +815,7 @@ void loop() {
     }
     else{
       drawScreenLayout();
+      clearScreen();
       tft.setTextColor(TFT_GREEN, TFT_BLACK);
       tft.setTextDatum(MC_DATUM);
       tft.drawString("Could not read Coin", tft.width() / 2, tft.height() / 2);
