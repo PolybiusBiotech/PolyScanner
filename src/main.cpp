@@ -152,32 +152,20 @@ void button_init() {
     pBtns[i].setPressedHandler(button_callback);
   }
   pBtns[2].setLongClickHandler([](Button2 &b) {
-    int x = tft.width() / 2;
-    int y = tft.height() / 2 - 30;
-    int r = digitalRead(TFT_BL);
-
-    tft.setTextColor(TFT_GREEN, TFT_BLACK);
-    tft.setTextDatum(MC_DATUM);
-    tft.fillScreen(TFT_BLACK);
-    tft.drawString(r ? "Backlight OFF" : "Backlight ON", x, y);
-    tft.drawString("IP5306 KeepOn ", x - 20, y + 30);
-
     bool isOk = setPowerBoostKeepOn(1);
-    tft.setTextColor(isOk ? TFT_GREEN : TFT_RED, TFT_BLACK);
-    tft.drawString(isOk ? "PASS" : "FAIL", x + 50, y + 30);
+    
     if (!isOk) {
       char *str = Wire.getErrorText(Wire.lastError());
-      String err = "Wire " + String(str);
-      tft.drawString(err, x + 50, y + 60);
-      y += 60;
+      String err = "Shutting down error, Wire " + String(str);
+      log_e("%s", err.c_str());
     } else {
-      y += 30;
+      log_d("Shutting down peripherals");
     }
-    tft.setTextColor(TFT_GREEN, TFT_BLACK);
-    tft.drawString("Press again to wake up", x - 20, y + 30);
+    
+    // Sleep nfc module
     nfc.shutDown(false, true);
     
-    // Send command to sleep mode
+    // Send command to sleep mode the barcode reader
     uint8_t activate[] PROGMEM = {0x7E, 0x00, 0x08, 0x01, 0x00, 0xD9, 0xA5, 0xAB, 0xCD};
     Barcode.write(activate, 9);
     delay(10);
@@ -186,8 +174,9 @@ void button_init() {
       Serial.print(Barcode.read(), HEX);
     }
 
-    delay(6000);
-    // digitalWrite(TFT_BL, !r);
+    delay(1000);
+
+    log_d("Shutting down esp32");
     esp_sleep_enable_ext0_wakeup((gpio_num_t)BUTTON_3, LOW);
     esp_deep_sleep_start();
   });
