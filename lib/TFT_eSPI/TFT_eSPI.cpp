@@ -4142,14 +4142,14 @@ size_t TFT_eSPI::write(uint8_t utf8)
   height = height * textsize;
 
   if (utf8 == '\n') {
-    cursor_y += height;
+    cursor_y += height + 2;
     cursor_x  = 0;
   }
   else
   {
     if (textwrapX && (cursor_x + width * textsize > _width))
     {
-      cursor_y += height;
+      cursor_y += height + 2;
       cursor_x = 0;
     }
     if (textwrapY && (cursor_y >= (int32_t)_height)) cursor_y = 0;
