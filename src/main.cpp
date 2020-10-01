@@ -670,7 +670,7 @@ void setup() {
   log_d("Used PSRAM: %d", ESP.getPsramSize() - ESP.getFreePsram());
 
   // Set up tasks
-  xTaskCreate(backgroundHeaderFooterDraw, "drawscreenlayout", 100000, NULL, 1, NULL);
+  xTaskCreate(backgroundHeaderFooterDraw, "drawscreenlayout", 100000, NULL, 0, NULL);
 }
 
 void loop() {
