@@ -561,6 +561,15 @@ void drawScreenLayout(){
   tft.drawString("TRY GET REQUEST", tft.width(), 320);
 }
 
+void backgroundHeaderFooterDraw( void * parameter){
+  while(true){
+    log_d("Running background header/footer redraw");
+    drawScreenLayout();
+    delay(60000);
+  }
+  vTaskDelete( NULL );
+}
+
 void setup() {
   Serial.begin(115200);
   Barcode.begin(115200, SERIAL_8N1, 33, 26);
@@ -659,6 +668,9 @@ void setup() {
   log_d("Total PSRAM: %d", ESP.getPsramSize());
   log_d("Free PSRAM: %d", ESP.getFreePsram());
   log_d("Used PSRAM: %d", ESP.getPsramSize() - ESP.getFreePsram());
+
+  // Set up tasks
+  xTaskCreate(backgroundHeaderFooterDraw, "drawscreenlayout", 100000, NULL, 1, NULL);
 }
 
 void loop() {
