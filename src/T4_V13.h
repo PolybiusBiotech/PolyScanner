@@ -13,8 +13,8 @@
 #define SPEAKER_OUT 25
 #define ADC_IN      35
 
-#define BUTTON_1    37
-#define BUTTON_2    38
+#define BUTTON_1    38
+#define BUTTON_2    37
 #define BUTTON_3    39
 #define BUTTON_4    0
 
