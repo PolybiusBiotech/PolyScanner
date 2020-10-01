@@ -35,6 +35,7 @@ using SpiRamJsonDocument = BasicJsonDocument<SpiRamAllocator>;
 WiFiMulti WiFimulti;
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
+bool isNTPSet = false;
 
 const char* root_ca PROGMEM = \
 "-----BEGIN CERTIFICATE-----\n" \
@@ -444,12 +445,10 @@ void clearScreen(){
 void drawScreenLayout(){
   tft.setTextFont(1);
   tft.setTextColor(TFT_ORANGE);
-  // tft.fillScreen(TFT_BLACK);
   tft.fillRect(0, 0, tft.width(), 10, TFT_BLACK);
   tft.drawFastHLine(0, 10, tft.width(), TFT_ORANGE); // Top divider
-  if(WiFi.status() == WL_CONNECTED){
+  if(isNTPSet){
     tft.setTextDatum(TL_DATUM);
-    // tft.drawString(timeClient.getFormattedTime(), 0, 0);
     if(timeClient.getHours() < 10){
       tft.drawNumber(0, 0, 0);
       tft.drawNumber(timeClient.getHours(), 7, 0);
@@ -641,10 +640,14 @@ void setup() {
     if(!timeClient.update()){
       log_w("Could not connect a second time, aborting");
     }
-    log_d("NTP Updated");
+    else{
+      log_d("NTP Updated");
+      isNTPSet = true;
+    }
   }
   else{
     log_d("NTP Updated");
+    isNTPSet = true;
   }
 
   drawScreenLayout();
