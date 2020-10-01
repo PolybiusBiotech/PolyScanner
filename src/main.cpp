@@ -567,6 +567,139 @@ void backgroundHeaderFooterDraw(){
   drawScreenLayout();
 }
 
+void readCoinAPIData(){
+  drawScreenLayout();
+  clearScreen();
+  tft.setTextColor(TFT_GREEN, TFT_BLACK);
+  tft.setTextDatum(MC_DATUM);
+  tft.drawString("Please present coin", tft.width() / 2, tft.height() / 2);
+
+  uint8_t success;
+  uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
+  uint8_t uidLength;                        // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
+
+  success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
+  
+  if (success) {
+    // Display some basic information about the card
+    log_d("Found an ISO14443A card");
+    log_d("  UID Length: %d bytes", uidLength);
+    log_d("  UID Value: %02X:%02X:%02X:%02X:%02X:%02X:%02X", uid[0], uid[1], uid[2], uid[3], uid[4], uid[5], uid[6]);
+    
+    if (uidLength == 7)
+    {
+      drawScreenLayout();
+      clearScreen();
+      tft.setTextColor(TFT_GREEN, TFT_BLACK);
+      tft.setTextDatum(MC_DATUM);
+      tft.drawString("Coin read, accessing data", tft.width() / 2, tft.height() / 2);
+
+      uint8_t uriIdentifier = 0;
+      char buffer[60];
+      memset(buffer, 0, 60);
+      if(nfc.ntag2xx_ReadNDEFString(&uriIdentifier, buffer, 60)){
+        WiFiClientSecure *client = new WiFiClientSecure;
+        if(client) {
+          client -> setCACert(root_ca);
+          {
+            // Add a scoping block for HTTPClient https to make sure it is destroyed before WiFiClientSecure *client is 
+            HTTPClient https;
+            log_d("[HTTPS] begin...\n");
+            if (https.begin(*client, String("https://") + String(buffer))) {  // HTTPS
+              log_d("[HTTPS] GET...\n");
+              // start connection and send HTTP header
+              int httpCode = https.GET();
+              // httpCode will be negative on error
+              if (httpCode > 0) {
+                // HTTP header has been send and Server response header has been handled
+                log_d("[HTTPS] GET... code: %d\n", httpCode);
+                // file found at server
+                if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
+                  String payload = https.getString();
+                  log_d("Payload: %s", payload.c_str());
+                  SpiRamJsonDocument doc(JSON_OBJECT_SIZE(5) + 90);
+                  DeserializationError error = deserializeJson(doc, payload);
+                  // Test if parsing succeeds.
+                  if (error) {
+                    log_e("deserializeJson() failed: %s", error.c_str());
+                    return;
+                  }
+
+                  const char* coin = doc["coin"];
+                  long reserved = doc["reserved"];
+                  long claimed = doc["claimed"];
+                  long modified = doc["modified"];
+                  float value = doc["value"];
+
+                  const char* coinDetails[78];
+                  memset(coinDetails, 0, 78);
+
+                  drawScreenLayout();
+                  clearScreen();
+
+                  tft.printf("Coin ID:\n  %s\n", coin);
+                  tft.printf("\nUID Value:\n  %02X:%02X:%02X:%02X:%02X:%02X:%02X\n", uid[0], uid[1], uid[2], uid[3], uid[4], uid[5], uid[6]);
+                  tft.printf("\nCurrent Value\n  %f\n", value);
+                  if(reserved != 0){
+                    tft.printf("\nReserved on:\n  %d:%d:%d %d/%d/%d\n", hour(reserved),
+                    minute(reserved), second(reserved), day(reserved), month(reserved), year(reserved));
+                  }
+                  if(claimed != 0){
+                    tft.printf("\nClaimed on:\n  %d:%d:%d %d/%d/%d\n", hour(claimed),
+                    minute(claimed), second(claimed), day(claimed), month(claimed), year(claimed));
+                  }
+                  if(modified != 0){
+                    tft.printf("\n\nLast modified:\n  %d:%d:%d %d/%d/%d\n", hour(modified),
+                    minute(modified), second(modified), day(modified), month(modified), year(modified));
+                  }
+                }
+              } else {
+                log_e("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
+                drawScreenLayout();
+                clearScreen();
+                tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                tft.setTextDatum(MC_DATUM);
+                tft.drawString("Network Error", tft.width() / 2, tft.height() / 2);
+              }
+              https.end();
+            } else {
+              log_w("[HTTPS] Unable to connect\n");
+              drawScreenLayout();
+              clearScreen();
+              tft.setTextColor(TFT_GREEN, TFT_BLACK);
+              tft.setTextDatum(MC_DATUM);
+              tft.drawString("Network Error", tft.width() / 2, tft.height() / 2);
+            }
+            // End extra scoping block
+          }
+          delete client;
+        } else {
+          log_e("Unable to create client");
+          drawScreenLayout();
+          clearScreen();
+          tft.setTextColor(TFT_GREEN, TFT_BLACK);
+          tft.setTextDatum(MC_DATUM);
+          tft.drawString("Network Error", tft.width() / 2, tft.height() / 2);
+        }
+      }
+      else{
+        drawScreenLayout();
+        clearScreen();
+        tft.setTextColor(TFT_GREEN, TFT_BLACK);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString("Coin had no address", tft.width() / 2, tft.height() / 2);
+      }
+    }
+  }
+  else{
+    drawScreenLayout();
+    clearScreen();
+    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString("Could not read Coin", tft.width() / 2, tft.height() / 2);
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   Barcode.begin(115200, SERIAL_8N1, 33, 26);
@@ -685,145 +818,15 @@ void loop() {
   }
   else if(state == 2){
     state = 0;
+    readCoinAPIData(); 
+  }
+  else if(state == 3){
+    state = 0;
     drawScreenLayout();
     clearScreen();
     tft.setTextColor(TFT_GREEN, TFT_BLACK);
     tft.setTextDatum(MC_DATUM);
     tft.drawString("Buzzer Test", tft.width() / 2, tft.height() / 2);
     playSound();
-  }
-  else if(state == 3){
-    state = 0;
-
-    drawScreenLayout();
-    clearScreen();
-    tft.setTextColor(TFT_GREEN, TFT_BLACK);
-    tft.setTextDatum(MC_DATUM);
-    tft.drawString("Please present coin", tft.width() / 2, tft.height() / 2);
-
-    uint8_t success;
-    uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
-    uint8_t uidLength;                        // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
-
-    success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
-    
-    if (success) {
-      // Display some basic information about the card
-      log_d("Found an ISO14443A card");
-      log_d("  UID Length: %d bytes", uidLength);
-      log_d("  UID Value: %02X:%02X:%02X:%02X:%02X:%02X:%02X", uid[0], uid[1], uid[2], uid[3], uid[4], uid[5], uid[6]);
-      
-      if (uidLength == 7)
-      {
-        drawScreenLayout();
-        clearScreen();
-        tft.setTextColor(TFT_GREEN, TFT_BLACK);
-        tft.setTextDatum(MC_DATUM);
-        tft.drawString("Coin read, accessing data", tft.width() / 2, tft.height() / 2);
-
-        uint8_t uriIdentifier = 0;
-        char buffer[60];
-        memset(buffer, 0, 60);
-        if(nfc.ntag2xx_ReadNDEFString(&uriIdentifier, buffer, 60)){
-          WiFiClientSecure *client = new WiFiClientSecure;
-          if(client) {
-            client -> setCACert(root_ca);
-            {
-              // Add a scoping block for HTTPClient https to make sure it is destroyed before WiFiClientSecure *client is 
-              HTTPClient https;
-              log_d("[HTTPS] begin...\n");
-              if (https.begin(*client, String("https://") + String(buffer))) {  // HTTPS
-                log_d("[HTTPS] GET...\n");
-                // start connection and send HTTP header
-                int httpCode = https.GET();
-                // httpCode will be negative on error
-                if (httpCode > 0) {
-                  // HTTP header has been send and Server response header has been handled
-                  log_d("[HTTPS] GET... code: %d\n", httpCode);
-                  // file found at server
-                  if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
-                    String payload = https.getString();
-                    log_d("Payload: %s", payload.c_str());
-                    SpiRamJsonDocument doc(JSON_OBJECT_SIZE(5) + 90);
-                    DeserializationError error = deserializeJson(doc, payload);
-                    // Test if parsing succeeds.
-                    if (error) {
-                      log_e("deserializeJson() failed: %s", error.c_str());
-                      return;
-                    }
-
-                    const char* coin = doc["coin"];
-                    long reserved = doc["reserved"];
-                    long claimed = doc["claimed"];
-                    long modified = doc["modified"];
-                    float value = doc["value"];
-
-                    const char* coinDetails[78];
-                    memset(coinDetails, 0, 78);
-
-                    drawScreenLayout();
-                    clearScreen();
-
-                    tft.printf("Coin ID:\n  %s\n", coin);
-                    tft.printf("\nUID Value:\n  %02X:%02X:%02X:%02X:%02X:%02X:%02X\n", uid[0], uid[1], uid[2], uid[3], uid[4], uid[5], uid[6]);
-                    tft.printf("\nCurrent Value\n  %f\n", value);
-                    if(reserved != 0){
-                      tft.printf("\nReserved on:\n  %d:%d:%d %d/%d/%d\n", hour(reserved),
-                      minute(reserved), second(reserved), day(reserved), month(reserved), year(reserved));
-                    }
-                    if(claimed != 0){
-                      tft.printf("\nClaimed on:\n  %d:%d:%d %d/%d/%d\n", hour(claimed),
-                      minute(claimed), second(claimed), day(claimed), month(claimed), year(claimed));
-                    }
-                    if(modified != 0){
-                      tft.printf("\n\nLast modified:\n  %d:%d:%d %d/%d/%d\n", hour(modified),
-                      minute(modified), second(modified), day(modified), month(modified), year(modified));
-                    }
-                  }
-                } else {
-                  log_e("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
-                  drawScreenLayout();
-                  clearScreen();
-                  tft.setTextColor(TFT_GREEN, TFT_BLACK);
-                  tft.setTextDatum(MC_DATUM);
-                  tft.drawString("Network Error", tft.width() / 2, tft.height() / 2);
-                }
-                https.end();
-              } else {
-                log_w("[HTTPS] Unable to connect\n");
-                drawScreenLayout();
-                clearScreen();
-                tft.setTextColor(TFT_GREEN, TFT_BLACK);
-                tft.setTextDatum(MC_DATUM);
-                tft.drawString("Network Error", tft.width() / 2, tft.height() / 2);
-              }
-              // End extra scoping block
-            }
-            delete client;
-          } else {
-            log_e("Unable to create client");
-            drawScreenLayout();
-            clearScreen();
-            tft.setTextColor(TFT_GREEN, TFT_BLACK);
-            tft.setTextDatum(MC_DATUM);
-            tft.drawString("Network Error", tft.width() / 2, tft.height() / 2);
-          }
-        }
-        else{
-          drawScreenLayout();
-          clearScreen();
-          tft.setTextColor(TFT_GREEN, TFT_BLACK);
-          tft.setTextDatum(MC_DATUM);
-          tft.drawString("Coin had no address", tft.width() / 2, tft.height() / 2);
-        }
-      }
-    }
-    else{
-      drawScreenLayout();
-      clearScreen();
-      tft.setTextColor(TFT_GREEN, TFT_BLACK);
-      tft.setTextDatum(MC_DATUM);
-      tft.drawString("Could not read Coin", tft.width() / 2, tft.height() / 2);
-    }
   }
 }
