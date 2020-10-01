@@ -106,6 +106,7 @@ Button2 *pBtns = nullptr;
 uint8_t g_btns[] = BUTTONS_MAP;
 char buff[512];
 Ticker btnscanT;
+Ticker redrawHFT;
 
 bool setPowerBoostKeepOn(int en) {
   Wire.beginTransmission(IP5306_ADDR);
@@ -561,13 +562,9 @@ void drawScreenLayout(){
   tft.drawString("TRY GET REQUEST", tft.width(), 320);
 }
 
-void backgroundHeaderFooterDraw( void * parameter){
-  while(true){
-    log_d("Running background header/footer redraw");
-    drawScreenLayout();
-    delay(60000);
-  }
-  vTaskDelete( NULL );
+void backgroundHeaderFooterDraw(){
+  log_d("Running background header/footer redraw");
+  drawScreenLayout();
 }
 
 void setup() {
@@ -662,15 +659,13 @@ void setup() {
   button_init();
 
   btnscanT.attach_ms(30, button_loop);
+  redrawHFT.attach(60, backgroundHeaderFooterDraw);
 
   log_d("Total heap: %d", ESP.getHeapSize());
   log_d("Free heap: %d", ESP.getFreeHeap());
   log_d("Total PSRAM: %d", ESP.getPsramSize());
   log_d("Free PSRAM: %d", ESP.getFreePsram());
   log_d("Used PSRAM: %d", ESP.getPsramSize() - ESP.getFreePsram());
-
-  // Set up tasks
-  xTaskCreate(backgroundHeaderFooterDraw, "drawscreenlayout", 100000, NULL, 0, NULL);
 }
 
 void loop() {
