@@ -243,35 +243,6 @@ void buzzer_test() {
   }
 }
 
-void wifi_scan() {
-  tft.setTextColor(TFT_GREEN, TFT_BLACK);
-  tft.fillScreen(TFT_BLACK);
-  tft.setTextDatum(MC_DATUM);
-  tft.setTextFont(2);
-  tft.setTextSize(1);
-
-  tft.drawString("Scan Network", tft.width() / 2, tft.height() / 2);
-
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
-  delay(100);
-
-  int16_t n = WiFi.scanNetworks();
-  tft.fillScreen(TFT_BLACK);
-  if (n == 0) {
-    tft.drawString("no networks found", tft.width() / 2, tft.height() / 2);
-  } else {
-    tft.setTextDatum(TL_DATUM);
-    tft.setCursor(0, 0);
-    log_d("Fount %d net\n", n);
-    for (int i = 0; i < n; ++i) {
-      sprintf(buff, "%2d %s (%d)", i + 1, WiFi.SSID(i).c_str(),
-              WiFi.RSSI(i));
-      tft.println(buff);
-    }
-  }
-}
-
 void listDir(fs::FS &fs, const char *dirname, uint8_t levels) {
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
   tft.fillScreen(TFT_BLACK);
