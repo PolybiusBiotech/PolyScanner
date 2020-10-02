@@ -830,7 +830,7 @@ void readCoinAPIData(){
                     minute(claimed), second(claimed), day(claimed), month(claimed), year(claimed));
                   }
                   if(modified != 0){
-                    tft.printf("\n\nLast modified:\n  %d:%d:%d %d/%d/%d\n", hour(modified),
+                    tft.printf("\nLast modified:\n  %d:%d:%d %d/%d/%d\n", hour(modified),
                     minute(modified), second(modified), day(modified), month(modified), year(modified));
                   }
                 }
