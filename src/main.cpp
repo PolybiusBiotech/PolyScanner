@@ -197,7 +197,7 @@ void spisd_test() {
     if (!SD.begin(SD_CS, sdSPI)) {
       tft.setTextFont(2);
       tft.setTextColor(TFT_RED, TFT_BLACK);
-      tft.drawString("SDCard MOUNT FAIL", tft.width() / 2,
+      tft.drawString(F("SDCard MOUNT FAIL"), tft.width() / 2,
                       tft.height() / 2);
     } else {
       uint32_t cardSize = SD.cardSize() / (1024 * 1024);
@@ -417,7 +417,7 @@ void drawScreenLayout(){
     else{
       tft.drawNumber(timeClient.getHours(), 0, 0);
     }
-    tft.drawString(":", 13, 0);
+    tft.drawString(F(":"), 13, 0);
     if(timeClient.getMinutes() < 10){
       tft.drawNumber(0, 18, 0);
       tft.drawNumber(timeClient.getMinutes(), 25, 0);
@@ -434,7 +434,7 @@ void drawScreenLayout(){
     tft.drawString(String(wifiStrength), tft.width()-16, 0);
   }
   else{
-    tft.drawString("X", tft.width()-16, 0);
+    tft.drawString(F("X"), tft.width()-16, 0);
   }
   if(wifiStrength == 0){
     // No connection
@@ -526,11 +526,11 @@ void drawScreenLayout(){
   tft.fillRect(0, 310, tft.width(), 10, TFT_BLACK);
   tft.drawLine(0, 309, 239, 309, TFT_ORANGE); // Bottom divider
   tft.setTextDatum(BL_DATUM);
-  tft.drawString("TEST BUZZER", 0, 320);
+  tft.drawString(F("TEST BUZZER"), 0, 320);
   tft.setTextDatum(BC_DATUM);
-  tft.drawString("READ RFID", tft.width()/2, 320);
+  tft.drawString(F("READ RFID"), tft.width()/2, 320);
   tft.setTextDatum(BR_DATUM);
-  tft.drawString("TRY GET REQUEST", tft.width(), 320);
+  tft.drawString(F("TRY GET REQUEST"), tft.width(), 320);
 }
 
 void backgroundHeaderFooterDraw(){
@@ -543,7 +543,7 @@ void mintNewCoin(){
   clearScreen();
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
   tft.setTextDatum(MC_DATUM);
-  tft.drawString("Please present coin", tft.width() / 2, tft.height() / 2);
+  tft.drawString(F("Please present coin"), tft.width() / 2, tft.height() / 2);
 
   uint8_t success;
   uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
@@ -561,14 +561,14 @@ void mintNewCoin(){
       clearScreen();
       tft.setTextColor(TFT_GREEN, TFT_BLACK);
       tft.setTextDatum(MC_DATUM);
-      tft.drawString("Coin found, checking compatibility", tft.width() / 2, tft.height() / 2);
+      tft.drawString(F("Coin found, checking compatibility"), tft.width() / 2, tft.height() / 2);
 
       if(!nfc.ntag2xx_IsLocked() && !nfc.ntag2xx_IsPassworded(NTAG213)){
         clearScreen();
         tft.setTextColor(TFT_GREEN, TFT_BLACK);
         tft.setTextDatum(MC_DATUM);
-        tft.drawString("Coin compatable", tft.width() / 2, tft.height() / 2);
-        tft.drawString("Contacting PolyCoin Servers", tft.width() / 2, (tft.height() / 2) + 10);
+        tft.drawString(F("Coin compatable"), tft.width() / 2, tft.height() / 2);
+        tft.drawString(F("Contacting PolyCoin Servers"), tft.width() / 2, (tft.height() / 2) + 10);
 
         // Request coin ID from /coin POST endpoint
         WiFiClientSecure *client = new WiFiClientSecure;
@@ -600,8 +600,8 @@ void mintNewCoin(){
                   clearScreen();
                   tft.setTextColor(TFT_GREEN, TFT_BLACK);
                   tft.setTextDatum(MC_DATUM);
-                  tft.drawString("Connected to server", tft.width() / 2, tft.height() / 2);
-                  tft.drawString("Initialising coin, please wait", tft.width() / 2, (tft.height() / 2) + 10);
+                  tft.drawString(F("Connected to server"), tft.width() / 2, tft.height() / 2);
+                  tft.drawString(F("Initialising coin, please wait"), tft.width() / 2, (tft.height() / 2) + 10);
 
                   // Write new coin address to coin and verify
                   uint8_t uriIdentifier2 = 0;
@@ -626,9 +626,9 @@ void mintNewCoin(){
                     clearScreen();
                     tft.setTextColor(TFT_GREEN, TFT_BLACK);
                     tft.setTextDatum(MC_DATUM);
-                    tft.drawString("Coin Initalised", tft.width() / 2, tft.height() / 2);
-                    tft.drawString("Finalising coin with PolyCoin Server", tft.width() / 2, (tft.height() / 2) + 10);
-                    tft.drawString("Please wait", tft.width() / 2, (tft.height() / 2) + 20);
+                    tft.drawString(F("Coin Initalised"), tft.width() / 2, tft.height() / 2);
+                    tft.drawString(F("Finalising coin with PolyCoin Server"), tft.width() / 2, (tft.height() / 2) + 10);
+                    tft.drawString(F("Please wait"), tft.width() / 2, (tft.height() / 2) + 20);
 
                     // Post coin serial to claim coin
                     log_d("[HTTPS] begin...\n");
@@ -652,8 +652,8 @@ void mintNewCoin(){
                           clearScreen();
                           tft.setTextColor(TFT_GREEN, TFT_BLACK);
                           tft.setTextDatum(MC_DATUM);
-                          tft.drawString("PolyCoin Finalised", tft.width() / 2, tft.height() / 2);
-                          tft.drawString("Locking Coin", tft.width() / 2, (tft.height() / 2) + 10);
+                          tft.drawString(F("PolyCoin Finalised"), tft.width() / 2, tft.height() / 2);
+                          tft.drawString(F("Locking Coin"), tft.width() / 2, (tft.height() / 2) + 10);
 
                           // Lock coin
                           // if(nfc.ntag2xx_Lock()){ // Disable locking for the moment
@@ -661,16 +661,16 @@ void mintNewCoin(){
                             clearScreen();
                             tft.setTextColor(TFT_GREEN, TFT_BLACK);
                             tft.setTextDatum(MC_DATUM);
-                            tft.drawString("Coin Minted and Locked", tft.width() / 2, tft.height() / 2);
-                            tft.drawString("Please remove coin", tft.width() / 2, (tft.height() / 2) + 10);
+                            tft.drawString(F("Coin Minted and Locked"), tft.width() / 2, tft.height() / 2);
+                            tft.drawString(F("Please remove coin"), tft.width() / 2, (tft.height() / 2) + 10);
                           }
                           else{
                             log_e("Error could not lock coin");
                             clearScreen();
                             tft.setTextColor(TFT_GREEN, TFT_BLACK);
                             tft.setTextDatum(MC_DATUM);
-                            tft.drawString("Could not lock coin", tft.width() / 2, tft.height() / 2);
-                            tft.drawString("Dispose of coin and try again", tft.width() / 2, (tft.height() / 2) + 10);
+                            tft.drawString(F("Could not lock coin"), tft.width() / 2, tft.height() / 2);
+                            tft.drawString(F("Dispose of coin and try again"), tft.width() / 2, (tft.height() / 2) + 10);
                           }
                         }
                         else{
@@ -678,8 +678,8 @@ void mintNewCoin(){
                           clearScreen();
                           tft.setTextColor(TFT_GREEN, TFT_BLACK);
                           tft.setTextDatum(MC_DATUM);
-                          tft.drawString("Error finalising with PolyCoin", tft.width() / 2, tft.height() / 2);
-                          tft.drawString("Dispose of coin and try again", tft.width() / 2, (tft.height() / 2) + 10);
+                          tft.drawString(F("Error finalising with PolyCoin"), tft.width() / 2, tft.height() / 2);
+                          tft.drawString(F("Dispose of coin and try again"), tft.width() / 2, (tft.height() / 2) + 10);
                         }
                       }
                       else{
@@ -687,8 +687,8 @@ void mintNewCoin(){
                         clearScreen();
                         tft.setTextColor(TFT_GREEN, TFT_BLACK);
                         tft.setTextDatum(MC_DATUM);
-                        tft.drawString("Error finalising with PolyCoin", tft.width() / 2, tft.height() / 2);
-                        tft.drawString("Dispose of coin and try again", tft.width() / 2, (tft.height() / 2) + 10);
+                        tft.drawString(F("Error finalising with PolyCoin"), tft.width() / 2, tft.height() / 2);
+                        tft.drawString(F("Dispose of coin and try again"), tft.width() / 2, (tft.height() / 2) + 10);
                       }
                     }
                     else{
@@ -696,8 +696,8 @@ void mintNewCoin(){
                       clearScreen();
                       tft.setTextColor(TFT_GREEN, TFT_BLACK);
                       tft.setTextDatum(MC_DATUM);
-                      tft.drawString("Error finalising with PolyCoin", tft.width() / 2, tft.height() / 2);
-                      tft.drawString("Dispose of coin and try again", tft.width() / 2, (tft.height() / 2) + 10);
+                      tft.drawString(F("Error finalising with PolyCoin"), tft.width() / 2, tft.height() / 2);
+                      tft.drawString(F("Dispose of coin and try again"), tft.width() / 2, (tft.height() / 2) + 10);
                     }
                   }
                   else{
@@ -705,8 +705,8 @@ void mintNewCoin(){
                     clearScreen();
                     tft.setTextColor(TFT_GREEN, TFT_BLACK);
                     tft.setTextDatum(MC_DATUM);
-                    tft.drawString("Error writing to coin", tft.width() / 2, tft.height() / 2);
-                    tft.drawString("Dispose of coin and try again", tft.width() / 2, (tft.height() / 2) + 10);
+                    tft.drawString(F("Error writing to coin"), tft.width() / 2, tft.height() / 2);
+                    tft.drawString(F("Dispose of coin and try again"), tft.width() / 2, (tft.height() / 2) + 10);
                   }
                 }
               } else {
@@ -715,7 +715,7 @@ void mintNewCoin(){
                 clearScreen();
                 tft.setTextColor(TFT_GREEN, TFT_BLACK);
                 tft.setTextDatum(MC_DATUM);
-                tft.drawString("Network Error", tft.width() / 2, tft.height() / 2);
+                tft.drawString(F("Network Error"), tft.width() / 2, tft.height() / 2);
               }
               https.end();
             } else {
@@ -724,7 +724,7 @@ void mintNewCoin(){
               clearScreen();
               tft.setTextColor(TFT_GREEN, TFT_BLACK);
               tft.setTextDatum(MC_DATUM);
-              tft.drawString("Network Error", tft.width() / 2, tft.height() / 2);
+              tft.drawString(F("Network Error"), tft.width() / 2, tft.height() / 2);
             }
             // End extra scoping block
           }
@@ -735,7 +735,7 @@ void mintNewCoin(){
         clearScreen();
         tft.setTextColor(TFT_GREEN, TFT_BLACK);
         tft.setTextDatum(MC_DATUM);
-        tft.drawString("Coin not compatable for minting", tft.width() / 2, tft.height() / 2);
+        tft.drawString(F("Coin not compatable for minting"), tft.width() / 2, tft.height() / 2);
       }
     }
   }
@@ -744,7 +744,7 @@ void mintNewCoin(){
     clearScreen();
     tft.setTextColor(TFT_GREEN, TFT_BLACK);
     tft.setTextDatum(MC_DATUM);
-    tft.drawString("Could not read Coin", tft.width() / 2, tft.height() / 2);
+    tft.drawString(F("Could not read Coin"), tft.width() / 2, tft.height() / 2);
   }
 }
 
@@ -753,7 +753,7 @@ void readCoinAPIData(){
   clearScreen();
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
   tft.setTextDatum(MC_DATUM);
-  tft.drawString("Please present coin", tft.width() / 2, tft.height() / 2);
+  tft.drawString(F("Please present coin"), tft.width() / 2, tft.height() / 2);
 
   uint8_t success;
   uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
@@ -773,7 +773,7 @@ void readCoinAPIData(){
       clearScreen();
       tft.setTextColor(TFT_GREEN, TFT_BLACK);
       tft.setTextDatum(MC_DATUM);
-      tft.drawString("Coin read, accessing data", tft.width() / 2, tft.height() / 2);
+      tft.drawString(F("Coin read, accessing data"), tft.width() / 2, tft.height() / 2);
 
       uint8_t uriIdentifier = 0;
       char buffer[60];
@@ -840,7 +840,7 @@ void readCoinAPIData(){
                 clearScreen();
                 tft.setTextColor(TFT_GREEN, TFT_BLACK);
                 tft.setTextDatum(MC_DATUM);
-                tft.drawString("Network Error", tft.width() / 2, tft.height() / 2);
+                tft.drawString(F("Network Error"), tft.width() / 2, tft.height() / 2);
               }
               https.end();
             } else {
@@ -849,7 +849,7 @@ void readCoinAPIData(){
               clearScreen();
               tft.setTextColor(TFT_GREEN, TFT_BLACK);
               tft.setTextDatum(MC_DATUM);
-              tft.drawString("Network Error", tft.width() / 2, tft.height() / 2);
+              tft.drawString(F("Network Error"), tft.width() / 2, tft.height() / 2);
             }
             // End extra scoping block
           }
@@ -860,7 +860,7 @@ void readCoinAPIData(){
           clearScreen();
           tft.setTextColor(TFT_GREEN, TFT_BLACK);
           tft.setTextDatum(MC_DATUM);
-          tft.drawString("Network Error", tft.width() / 2, tft.height() / 2);
+          tft.drawString(F("Network Error"), tft.width() / 2, tft.height() / 2);
         }
       }
       else{
@@ -868,7 +868,7 @@ void readCoinAPIData(){
         clearScreen();
         tft.setTextColor(TFT_GREEN, TFT_BLACK);
         tft.setTextDatum(MC_DATUM);
-        tft.drawString("Coin had no address", tft.width() / 2, tft.height() / 2);
+        tft.drawString(F("Coin had no address"), tft.width() / 2, tft.height() / 2);
       }
     }
   }
@@ -877,7 +877,7 @@ void readCoinAPIData(){
     clearScreen();
     tft.setTextColor(TFT_GREEN, TFT_BLACK);
     tft.setTextDatum(MC_DATUM);
-    tft.drawString("Could not read Coin", tft.width() / 2, tft.height() / 2);
+    tft.drawString(F("Could not read Coin"), tft.width() / 2, tft.height() / 2);
   }
 }
 
@@ -930,7 +930,7 @@ void setup() {
   clearScreen();
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
   tft.setTextDatum(MC_DATUM);
-  tft.drawString("BOOTING, PLEASE WAIT", tft.width() / 2, tft.height() / 2);
+  tft.drawString(F("BOOTING, PLEASE WAIT"), tft.width() / 2, tft.height() / 2);
 
   // SET UP WIFI AND STUFF FOR RESTING REST API
   WiFimulti.addAP("Bifrost", "lolbutts");
@@ -963,7 +963,7 @@ void setup() {
   clearScreen();
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
   tft.setTextDatum(MC_DATUM);
-  tft.drawString("WiFi Connected, IP:", tft.width() / 2, tft.height() / 2);
+  tft.drawString(F("WiFi Connected, IP:"), tft.width() / 2, tft.height() / 2);
   tft.drawString(WiFi.localIP().toString(), tft.width() / 2, (tft.height() / 2)+10);
 
   delay(3000);
@@ -998,7 +998,7 @@ void loop() {
     clearScreen();
     tft.setTextColor(TFT_GREEN, TFT_BLACK);
     tft.setTextDatum(MC_DATUM);
-    tft.drawString("Buzzer Test", tft.width() / 2, tft.height() / 2);
+    tft.drawString(F("Buzzer Test"), tft.width() / 2, tft.height() / 2);
     playSound();
   }
 }
