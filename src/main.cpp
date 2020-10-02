@@ -538,6 +538,216 @@ void backgroundHeaderFooterDraw(){
   drawScreenLayout();
 }
 
+void mintNewCoin(){
+  drawScreenLayout();
+  clearScreen();
+  tft.setTextColor(TFT_GREEN, TFT_BLACK);
+  tft.setTextDatum(MC_DATUM);
+  tft.drawString("Please present coin", tft.width() / 2, tft.height() / 2);
+
+  uint8_t success;
+  uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
+  uint8_t uidLength;                        // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
+
+  success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
+  
+  if (success) {
+    // Display some basic information about the card
+    log_d("Found an ISO14443A card");
+    log_d("  UID Length: %d bytes", uidLength);
+    log_d("  UID Value: %02X:%02X:%02X:%02X:%02X:%02X:%02X", uid[0], uid[1], uid[2], uid[3], uid[4], uid[5], uid[6]);
+    
+    if (uidLength == 7){
+      clearScreen();
+      tft.setTextColor(TFT_GREEN, TFT_BLACK);
+      tft.setTextDatum(MC_DATUM);
+      tft.drawString("Coin found, checking compatibility", tft.width() / 2, tft.height() / 2);
+
+      if(!nfc.ntag2xx_IsLocked() && !nfc.ntag2xx_IsPassworded(NTAG213)){
+        clearScreen();
+        tft.setTextColor(TFT_GREEN, TFT_BLACK);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString("Coin compatable", tft.width() / 2, tft.height() / 2);
+        tft.drawString("Contacting PolyCoin Servers", tft.width() / 2, (tft.height() / 2) + 10);
+
+        // Request coin ID from /coin POST endpoint
+        WiFiClientSecure *client = new WiFiClientSecure;
+        if(client) {
+          client -> setCACert(root_ca);
+          {
+            // Add a scoping block for HTTPClient https to make sure it is destroyed before WiFiClientSecure *client is 
+            HTTPClient https;
+            log_d("[HTTPS] begin...\n");
+            if (https.begin(*client, "https://coin.polyb.io/coins")) {  // HTTPS
+              log_d("[HTTPS] POST...\n");
+              // start connection and send HTTP header
+              String body = "{\"key\":\"887dee7b-15a5-40fd-ae00-b852e99c3d49\"}";
+              https.addHeader("Content-Type", "application/json");
+              const char * headerKeys[] = {"location"} ;
+              const size_t numberOfHeaders = 1;
+              https.collectHeaders(headerKeys, numberOfHeaders);
+              int httpCode = https.POST(body);
+              // httpCode will be negative on error
+              if (httpCode > 0) {
+                // HTTP header has been send and Server response header has been handled
+                log_d("[HTTPS] POST... code: %d\n", httpCode);
+                // file found at server
+                if (httpCode == HTTP_CODE_SEE_OTHER) {
+                  String location = https.header("location");
+                  log_d("Location of new coin is: %s", location.c_str());
+                  https.end();
+
+                  clearScreen();
+                  tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                  tft.setTextDatum(MC_DATUM);
+                  tft.drawString("Connected to server", tft.width() / 2, tft.height() / 2);
+                  tft.drawString("Initialising coin, please wait", tft.width() / 2, (tft.height() / 2) + 10);
+
+                  // Write new coin address to coin and verify
+                  uint8_t uriIdentifier2 = 0;
+                  char buffer2[60];
+                  if(nfc.ntag2xx_ReadNDEFString(&uriIdentifier2, buffer2, 60)){
+                    // We have an existing record, erase
+                    log_d("Tag has existing record, trying to remove it");
+                    if(nfc.ntag2xx_EraseUserData()){
+                      // We erased the tag ready for writing
+                      log_d("Successfully erased tag");
+                    }
+                    else{
+                      log_e("Could not erase tag");
+                    }
+                  }
+
+                  String coinLoc = "coin.polyb.io" + location;
+                  char *cstr = new char[coinLoc.length() + 1];
+                  strcpy(cstr, coinLoc.c_str());
+                  if(nfc.ntag2xx_WriteNDEFURI(NDEF_URIPREFIX_HTTPS, cstr)){
+                    log_d("URL Written to coin");
+                    clearScreen();
+                    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                    tft.setTextDatum(MC_DATUM);
+                    tft.drawString("Coin Initalised", tft.width() / 2, tft.height() / 2);
+                    tft.drawString("Finalising coin with PolyCoin Server", tft.width() / 2, (tft.height() / 2) + 10);
+                    tft.drawString("Please wait", tft.width() / 2, (tft.height() / 2) + 20);
+
+                    // Post coin serial to claim coin
+                    log_d("[HTTPS] begin...\n");
+                    String coinClaimLoc = "https://coin.polyb.io" + location + "/claim";
+                    log_d("%s", coinClaimLoc.c_str());
+                    if (https.begin(*client, coinClaimLoc)) {  // HTTPS
+                      log_d("[HTTPS] POST...\n");
+                      // start connection and send HTTP header
+                      char buf[15];
+                      memset(buf, 0, 15);
+                      sprintf(buf, "%02X%02X%02X%02X%02X%02X%02X", uid[0], uid[1], uid[2], uid[3], uid[4], uid[5], uid[6]);
+                      String body = "{\"key\":\"887dee7b-15a5-40fd-ae00-b852e99c3d49\",\"serial\":\"" + String(buf) + "\"}";
+                      https.addHeader("Content-Type", "application/json");
+                      int httpCode = https.POST(body);
+                      // httpCode will be negative on error
+                      if (httpCode > 0) {
+                        // HTTP header has been send and Server response header has been handled
+                        log_d("[HTTPS] POST... code: %d\n", httpCode);
+                        // file found at server
+                        if (httpCode == HTTP_CODE_NO_CONTENT) {
+                          clearScreen();
+                          tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                          tft.setTextDatum(MC_DATUM);
+                          tft.drawString("PolyCoin Finalised", tft.width() / 2, tft.height() / 2);
+                          tft.drawString("Locking Coin", tft.width() / 2, (tft.height() / 2) + 10);
+
+                          // Lock coin
+                          // if(nfc.ntag2xx_Lock()){ // Disable locking for the moment
+                          if(true){
+                            clearScreen();
+                            tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                            tft.setTextDatum(MC_DATUM);
+                            tft.drawString("Coin Minted and Locked", tft.width() / 2, tft.height() / 2);
+                            tft.drawString("Please remove coin", tft.width() / 2, (tft.height() / 2) + 10);
+                          }
+                          else{
+                            log_e("Error could not lock coin");
+                            clearScreen();
+                            tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                            tft.setTextDatum(MC_DATUM);
+                            tft.drawString("Could not lock coin", tft.width() / 2, tft.height() / 2);
+                            tft.drawString("Dispose of coin and try again", tft.width() / 2, (tft.height() / 2) + 10);
+                          }
+                        }
+                        else{
+                          log_e("Error httpcode not OK");
+                          clearScreen();
+                          tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                          tft.setTextDatum(MC_DATUM);
+                          tft.drawString("Error finalising with PolyCoin", tft.width() / 2, tft.height() / 2);
+                          tft.drawString("Dispose of coin and try again", tft.width() / 2, (tft.height() / 2) + 10);
+                        }
+                      }
+                      else{
+                        log_e("Error httpcode error");
+                        clearScreen();
+                        tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                        tft.setTextDatum(MC_DATUM);
+                        tft.drawString("Error finalising with PolyCoin", tft.width() / 2, tft.height() / 2);
+                        tft.drawString("Dispose of coin and try again", tft.width() / 2, (tft.height() / 2) + 10);
+                      }
+                    }
+                    else{
+                      log_e("Error opening client for /claim POST");
+                      clearScreen();
+                      tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                      tft.setTextDatum(MC_DATUM);
+                      tft.drawString("Error finalising with PolyCoin", tft.width() / 2, tft.height() / 2);
+                      tft.drawString("Dispose of coin and try again", tft.width() / 2, (tft.height() / 2) + 10);
+                    }
+                  }
+                  else{
+                    log_e("Error writing ndef record to coin");
+                    clearScreen();
+                    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                    tft.setTextDatum(MC_DATUM);
+                    tft.drawString("Error writing to coin", tft.width() / 2, tft.height() / 2);
+                    tft.drawString("Dispose of coin and try again", tft.width() / 2, (tft.height() / 2) + 10);
+                  }
+                }
+              } else {
+                log_e("[HTTPS] POST... failed, error: %s\n", https.errorToString(httpCode).c_str());
+                drawScreenLayout();
+                clearScreen();
+                tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                tft.setTextDatum(MC_DATUM);
+                tft.drawString("Network Error", tft.width() / 2, tft.height() / 2);
+              }
+              https.end();
+            } else {
+              log_w("[HTTPS] Unable to connect\n");
+              drawScreenLayout();
+              clearScreen();
+              tft.setTextColor(TFT_GREEN, TFT_BLACK);
+              tft.setTextDatum(MC_DATUM);
+              tft.drawString("Network Error", tft.width() / 2, tft.height() / 2);
+            }
+            // End extra scoping block
+          }
+          delete client;
+        }
+      }
+      else{
+        clearScreen();
+        tft.setTextColor(TFT_GREEN, TFT_BLACK);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString("Coin not compatable for minting", tft.width() / 2, tft.height() / 2);
+      }
+    }
+  }
+  else{
+    drawScreenLayout();
+    clearScreen();
+    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString("Could not read Coin", tft.width() / 2, tft.height() / 2);
+  }
+}
+
 void readCoinAPIData(){
   drawScreenLayout();
   clearScreen();
@@ -776,18 +986,9 @@ void loop() {
   // **********************************************************************************************
   if(state == 1){
     state = 0;
-    // wifi_scan();
-    drawScreenLayout();
-    clearScreen();
-    tft.setTextColor(TFT_GREEN, TFT_BLACK);
-    tft.setTextDatum(MC_DATUM);
-    tft.drawString("Read RFID", tft.width() / 2, tft.height() / 2);
-    printIP5306Stats();
-    activateBarcodeScan(1000);
-    // scanForTag();
-    // playSound();
+    mintNewCoin();
   }
-  else if(state == 2){
+  else if(state == 2){ // Middle Button
     state = 0;
     readCoinAPIData(); 
   }
