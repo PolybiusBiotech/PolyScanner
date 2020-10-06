@@ -798,7 +798,7 @@ void readCoinAPIData(){
                 if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
                   String payload = https.getString();
                   log_d("Payload: %s", payload.c_str());
-                  SpiRamJsonDocument doc(JSON_OBJECT_SIZE(5) + 90);
+                  SpiRamJsonDocument doc(JSON_OBJECT_SIZE(6) + 90);
                   DeserializationError error = deserializeJson(doc, payload);
                   // Test if parsing succeeds.
                   if (error) {
@@ -811,6 +811,7 @@ void readCoinAPIData(){
                   long claimed = doc["claimed"];
                   long modified = doc["modified"];
                   float value = doc["value"];
+                  float escrow = doc["escrow"];
 
                   const char* coinDetails[78];
                   memset(coinDetails, 0, 78);
