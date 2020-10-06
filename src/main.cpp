@@ -821,7 +821,8 @@ void readCoinAPIData(){
 
                   tft.printf("Coin ID:\n  %s\n", coin);
                   tft.printf("\nUID Value:\n  %02X:%02X:%02X:%02X:%02X:%02X:%02X\n", uid[0], uid[1], uid[2], uid[3], uid[4], uid[5], uid[6]);
-                  tft.printf("\nCurrent Value\n  %f\n", value);
+                  tft.printf("\nCurrent Value:\n  %f\n", value);
+                  tft.printf("\nEscrow Value:\n  %f\n", escrow);
                   if(reserved != 0){
                     tft.printf("\nReserved on:\n  %d:%d:%d %d/%d/%d\n", hour(reserved),
                     minute(reserved), second(reserved), day(reserved), month(reserved), year(reserved));
