@@ -1256,12 +1256,26 @@ void setup() {
     Serial.print(Barcode.read(), HEX);
   }
 
+  tft.init();
+  tft.setRotation(0);
+  tft.fillScreen(TFT_BLACK);
+  tft.setTextSize(1);
+  tft.setTextColor(TFT_WHITE);
+  tft.setCursor(0, 0);
+
   nfc.begin();
 
   uint32_t versiondata = nfc.getFirmwareVersion();
   if (! versiondata) {
     log_e("Didn't find PN53x board");
-    while (1); // halt
+    drawHeader();
+    clearScreen();
+    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString(F("ERROR: UNABLE TO FIND RFID READER"), tft.width() / 2, tft.height() / 2);
+    tft.drawString(F("SHUTTINGDOWN IN 5 SECONDS"), tft.width() / 2, tft.height() / 2+10);
+    delay(5000);
+    shutdownSystem();
   }
   // Got ok data, print it out!
   log_d("Found chip PN5%x", (versiondata>>24) & 0xFF); 
@@ -1269,13 +1283,6 @@ void setup() {
   
   // configure board to read RFID tags
   nfc.SAMConfig();
-
-  tft.init();
-  tft.setRotation(0);
-  tft.fillScreen(TFT_BLACK);
-  tft.setTextSize(1);
-  tft.setTextColor(TFT_WHITE);
-  tft.setCursor(0, 0);
 
   if (TFT_BL > 0) {
     // configure LED PWM functionalitites
