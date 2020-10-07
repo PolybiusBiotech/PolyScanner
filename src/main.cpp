@@ -121,6 +121,36 @@ bool setPowerBoostKeepOn(int en) {
   return Wire.endTransmission() == 0;
 }
 
+void shutdownSystem(){
+  bool isOk = setPowerBoostKeepOn(1);
+    
+  if (!isOk) {
+    char *str = Wire.getErrorText(Wire.lastError());
+    String err = "Shutting down error, Wire " + String(str);
+    log_e("%s", err.c_str());
+  } else {
+    log_d("Shutting down peripherals");
+  }
+  
+  // Sleep nfc module
+  nfc.shutDown(false, true);
+  
+  // Send command to sleep mode the barcode reader
+  uint8_t activate[] PROGMEM = {0x7E, 0x00, 0x08, 0x01, 0x00, 0xD9, 0xA5, 0xAB, 0xCD};
+  Barcode.write(activate, 9);
+  delay(10);
+
+  while(Barcode.available()){
+    Serial.print(Barcode.read(), HEX);
+  }
+
+  delay(1000);
+
+  log_d("Shutting down esp32");
+  esp_sleep_enable_ext0_wakeup((gpio_num_t)BUTTON_3, LOW);
+  esp_deep_sleep_start();
+}
+
 void button_handle(uint8_t gpio) {
   switch (gpio) {
     case BUTTON_1: {
@@ -156,33 +186,7 @@ void button_init() {
     pBtns[i].setPressedHandler(button_callback);
   }
   pBtns[2].setLongClickHandler([](Button2 &b) {
-    bool isOk = setPowerBoostKeepOn(1);
-    
-    if (!isOk) {
-      char *str = Wire.getErrorText(Wire.lastError());
-      String err = "Shutting down error, Wire " + String(str);
-      log_e("%s", err.c_str());
-    } else {
-      log_d("Shutting down peripherals");
-    }
-    
-    // Sleep nfc module
-    nfc.shutDown(false, true);
-    
-    // Send command to sleep mode the barcode reader
-    uint8_t activate[] PROGMEM = {0x7E, 0x00, 0x08, 0x01, 0x00, 0xD9, 0xA5, 0xAB, 0xCD};
-    Barcode.write(activate, 9);
-    delay(10);
-
-    while(Barcode.available()){
-      Serial.print(Barcode.read(), HEX);
-    }
-
-    delay(1000);
-
-    log_d("Shutting down esp32");
-    esp_sleep_enable_ext0_wakeup((gpio_num_t)BUTTON_3, LOW);
-    esp_deep_sleep_start();
+    shutdownSystem();
   });
 }
 
