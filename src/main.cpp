@@ -109,6 +109,8 @@ char buff[512];
 Ticker btnscanT;
 Ticker redrawHFT;
 
+String headerTitle = "";
+
 bool setPowerBoostKeepOn(int en) {
   Wire.beginTransmission(IP5306_ADDR);
   Wire.write(IP5306_REG_SYS_CTL0);
@@ -428,6 +430,9 @@ void drawScreenLayout(){
     }
   }
 
+  tft.setTextDatum(TC_DATUM);
+  tft.drawString(headerTitle, (tft.width()/2)-20, 0);
+
   // Wifi icon
   long wifiStrength = WiFi.RSSI();
   tft.setTextDatum(TR_DATUM);
@@ -523,7 +528,9 @@ void drawScreenLayout(){
   // tft.drawString(PROGMEM "| ___ \\ |/ _ \\| __/ _ \\/ __| '_ \\", 35, 84+(8*3));
   // tft.drawString(PROGMEM "| |_/ / | (_) | ||  __/ (__| | | |", 35, 84+(8*4));
   // tft.drawString(PROGMEM "\\____/|_|\\___/ \\__\\___|\\___|_| |_|", 35, 84+(8*5));
+}
 
+void drawFooter(){
   tft.fillRect(0, 310, tft.width(), 10, TFT_BLACK);
   tft.drawLine(0, 309, 239, 309, TFT_ORANGE); // Bottom divider
   tft.setTextDatum(BL_DATUM);
@@ -535,11 +542,12 @@ void drawScreenLayout(){
 }
 
 void backgroundHeaderFooterDraw(){
-  log_d("Running background header/footer redraw");
+  log_d("Running background header redraw");
   drawScreenLayout();
 }
 
 void mintNewCoin(){
+  headerTitle = "Mint Fresh Coin";
   drawScreenLayout();
   clearScreen();
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
@@ -747,9 +755,12 @@ void mintNewCoin(){
     tft.setTextDatum(MC_DATUM);
     tft.drawString(F("Could not read Coin"), tft.width() / 2, tft.height() / 2);
   }
+  headerTitle = "";
+  drawScreenLayout();
 }
 
 void readCoinAPIData(){
+  headerTitle = "Read Coin Details";
   drawScreenLayout();
   clearScreen();
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
@@ -882,9 +893,12 @@ void readCoinAPIData(){
     tft.setTextDatum(MC_DATUM);
     tft.drawString(F("Could not read Coin"), tft.width() / 2, tft.height() / 2);
   }
+  headerTitle = "";
+  drawScreenLayout();
 }
 
 void sweepQRCode(){
+  headerTitle = "Read Escrow QRCode";
   drawScreenLayout();
   clearScreen();
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
@@ -1246,6 +1260,8 @@ void sweepQRCode(){
     tft.drawString(F("Could not activate reader"), tft.width() / 2, tft.height() / 2);
     tft.drawString(F("Contact support"), tft.width() / 2, (tft.height() / 2) + 10);
   }
+  headerTitle = "";
+  drawScreenLayout();
 }
 
 void setup() {
@@ -1294,6 +1310,7 @@ void setup() {
   printIP5306Settings();
 
   drawScreenLayout();
+  drawFooter();
   clearScreen();
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
   tft.setTextDatum(MC_DATUM);
