@@ -527,11 +527,11 @@ void drawScreenLayout(){
   tft.fillRect(0, 310, tft.width(), 10, TFT_BLACK);
   tft.drawLine(0, 309, 239, 309, TFT_ORANGE); // Bottom divider
   tft.setTextDatum(BL_DATUM);
-  tft.drawString(F("TEST BUZZER"), 0, 320);
+  tft.drawString(F("MINT COIN"), 0, 320);
   tft.setTextDatum(BC_DATUM);
-  tft.drawString(F("READ RFID"), tft.width()/2, 320);
+  tft.drawString(F("READ COIN"), tft.width()/2, 320);
   tft.setTextDatum(BR_DATUM);
-  tft.drawString(F("TRY GET REQUEST"), tft.width(), 320);
+  tft.drawString(F("SWEEP ESCROW"), tft.width(), 320);
 }
 
 void backgroundHeaderFooterDraw(){
