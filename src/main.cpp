@@ -406,7 +406,7 @@ void clearScreen(){
   tft.setCursor(0,15);
 }
 
-void drawScreenLayout(){
+void drawHeader(){
   tft.setTextFont(1);
   tft.setTextColor(TFT_ORANGE);
   tft.fillRect(0, 0, tft.width(), 10, TFT_BLACK);
@@ -543,12 +543,12 @@ void drawFooter(){
 
 void backgroundHeaderFooterDraw(){
   log_d("Running background header redraw");
-  drawScreenLayout();
+  drawHeader();
 }
 
 void mintNewCoin(){
   headerTitle = "Mint Fresh Coin";
-  drawScreenLayout();
+  drawHeader();
   clearScreen();
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
   tft.setTextDatum(MC_DATUM);
@@ -720,7 +720,7 @@ void mintNewCoin(){
                 }
               } else {
                 log_e("[HTTPS] POST... failed, error: %s\n", https.errorToString(httpCode).c_str());
-                drawScreenLayout();
+                drawHeader();
                 clearScreen();
                 tft.setTextColor(TFT_GREEN, TFT_BLACK);
                 tft.setTextDatum(MC_DATUM);
@@ -729,7 +729,7 @@ void mintNewCoin(){
               https.end();
             } else {
               log_w("[HTTPS] Unable to connect\n");
-              drawScreenLayout();
+              drawHeader();
               clearScreen();
               tft.setTextColor(TFT_GREEN, TFT_BLACK);
               tft.setTextDatum(MC_DATUM);
@@ -749,19 +749,19 @@ void mintNewCoin(){
     }
   }
   else{
-    drawScreenLayout();
+    drawHeader();
     clearScreen();
     tft.setTextColor(TFT_GREEN, TFT_BLACK);
     tft.setTextDatum(MC_DATUM);
     tft.drawString(F("Could not read Coin"), tft.width() / 2, tft.height() / 2);
   }
   headerTitle = "";
-  drawScreenLayout();
+  drawHeader();
 }
 
 void readCoinAPIData(){
   headerTitle = "Read Coin Details";
-  drawScreenLayout();
+  drawHeader();
   clearScreen();
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
   tft.setTextDatum(MC_DATUM);
@@ -781,7 +781,7 @@ void readCoinAPIData(){
     
     if (uidLength == 7)
     {
-      drawScreenLayout();
+      drawHeader();
       clearScreen();
       tft.setTextColor(TFT_GREEN, TFT_BLACK);
       tft.setTextDatum(MC_DATUM);
@@ -828,7 +828,7 @@ void readCoinAPIData(){
                   const char* coinDetails[78];
                   memset(coinDetails, 0, 78);
 
-                  drawScreenLayout();
+                  drawHeader();
                   clearScreen();
 
                   tft.printf("Coin ID:\n  %s\n", coin);
@@ -850,7 +850,7 @@ void readCoinAPIData(){
                 }
               } else {
                 log_e("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
-                drawScreenLayout();
+                drawHeader();
                 clearScreen();
                 tft.setTextColor(TFT_GREEN, TFT_BLACK);
                 tft.setTextDatum(MC_DATUM);
@@ -859,7 +859,7 @@ void readCoinAPIData(){
               https.end();
             } else {
               log_w("[HTTPS] Unable to connect\n");
-              drawScreenLayout();
+              drawHeader();
               clearScreen();
               tft.setTextColor(TFT_GREEN, TFT_BLACK);
               tft.setTextDatum(MC_DATUM);
@@ -870,7 +870,7 @@ void readCoinAPIData(){
           delete client;
         } else {
           log_e("Unable to create client");
-          drawScreenLayout();
+          drawHeader();
           clearScreen();
           tft.setTextColor(TFT_GREEN, TFT_BLACK);
           tft.setTextDatum(MC_DATUM);
@@ -878,7 +878,7 @@ void readCoinAPIData(){
         }
       }
       else{
-        drawScreenLayout();
+        drawHeader();
         clearScreen();
         tft.setTextColor(TFT_GREEN, TFT_BLACK);
         tft.setTextDatum(MC_DATUM);
@@ -887,19 +887,19 @@ void readCoinAPIData(){
     }
   }
   else{
-    drawScreenLayout();
+    drawHeader();
     clearScreen();
     tft.setTextColor(TFT_GREEN, TFT_BLACK);
     tft.setTextDatum(MC_DATUM);
     tft.drawString(F("Could not read Coin"), tft.width() / 2, tft.height() / 2);
   }
   headerTitle = "";
-  drawScreenLayout();
+  drawHeader();
 }
 
 void sweepQRCode(){
   headerTitle = "Read Escrow QRCode";
-  drawScreenLayout();
+  drawHeader();
   clearScreen();
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
   tft.setTextDatum(MC_DATUM);
@@ -920,7 +920,7 @@ void sweepQRCode(){
 
     // If it is, try to get its details over https
     if(result){
-      drawScreenLayout();
+      drawHeader();
       clearScreen();
       tft.setTextColor(TFT_GREEN, TFT_BLACK);
       tft.setTextDatum(MC_DATUM);
@@ -966,7 +966,7 @@ void sweepQRCode(){
                   const char* resolvedTransaction = doc["resolvedTransaction"];
                   long claimed = doc["claimed"];
 
-                  drawScreenLayout();
+                  drawHeader();
                   clearScreen();
 
                   tft.printf("Escrow Transaction ID:\n  %s\n", transaction);
@@ -987,7 +987,7 @@ void sweepQRCode(){
                     
                     if (success) {
                       log_d("RFID Coin found, read ID...");
-                      drawScreenLayout();
+                      drawHeader();
                       clearScreen();
                       tft.setTextColor(TFT_GREEN, TFT_BLACK);
                       tft.setTextDatum(MC_DATUM);
@@ -1004,7 +1004,7 @@ void sweepQRCode(){
                         memset(buffer, 0, 60);
                         if(nfc.ntag2xx_ReadNDEFString(&uriIdentifier, buffer, 60)){
                           log_d("NDEF string read");
-                          drawScreenLayout();
+                          drawHeader();
                           clearScreen();
                           tft.setTextColor(TFT_GREEN, TFT_BLACK);
                           tft.setTextDatum(MC_DATUM);
@@ -1041,7 +1041,7 @@ void sweepQRCode(){
                                 float value = doc["value"];
                                 // float escrow = doc["escrow"];
 
-                                drawScreenLayout();
+                                drawHeader();
                                 clearScreen();
 
                                 tft.printf("Coin ID:\n  %s\n", coin);
@@ -1129,7 +1129,7 @@ void sweepQRCode(){
                                             }
                                           } else {
                                             log_e("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
-                                            drawScreenLayout();
+                                            drawHeader();
                                             clearScreen();
                                             tft.setTextColor(TFT_GREEN, TFT_BLACK);
                                             tft.setTextDatum(MC_DATUM);
@@ -1138,7 +1138,7 @@ void sweepQRCode(){
                                           https.end();
                                         } else {
                                           log_w("[HTTPS] Unable to connect\n");
-                                          drawScreenLayout();
+                                          drawHeader();
                                           clearScreen();
                                           tft.setTextColor(TFT_GREEN, TFT_BLACK);
                                           tft.setTextDatum(MC_DATUM);
@@ -1178,7 +1178,7 @@ void sweepQRCode(){
                               }
                             } else {
                               log_e("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
-                              drawScreenLayout();
+                              drawHeader();
                               clearScreen();
                               tft.setTextColor(TFT_GREEN, TFT_BLACK);
                               tft.setTextDatum(MC_DATUM);
@@ -1187,7 +1187,7 @@ void sweepQRCode(){
                             https.end();
                           } else {
                             log_w("[HTTPS] Unable to connect\n");
-                            drawScreenLayout();
+                            drawHeader();
                             clearScreen();
                             tft.setTextColor(TFT_GREEN, TFT_BLACK);
                             tft.setTextDatum(MC_DATUM);
@@ -1197,7 +1197,7 @@ void sweepQRCode(){
                       }
                       else{
                         log_d("Non matching rfid tag");
-                        drawScreenLayout();
+                        drawHeader();
                         clearScreen();
                         tft.setTextColor(TFT_GREEN, TFT_BLACK);
                         tft.setTextDatum(MC_DATUM);
@@ -1206,7 +1206,7 @@ void sweepQRCode(){
                     }
                     else{
                       log_d("RFID Coin not found");
-                      drawScreenLayout();
+                      drawHeader();
                       clearScreen();
                       tft.setTextColor(TFT_GREEN, TFT_BLACK);
                       tft.setTextDatum(MC_DATUM);
@@ -1222,7 +1222,7 @@ void sweepQRCode(){
                 }
               } else {
                 log_e("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
-                drawScreenLayout();
+                drawHeader();
                 clearScreen();
                 tft.setTextColor(TFT_GREEN, TFT_BLACK);
                 tft.setTextDatum(MC_DATUM);
@@ -1231,7 +1231,7 @@ void sweepQRCode(){
               https.end();
             } else {
               log_w("[HTTPS] Unable to connect\n");
-              drawScreenLayout();
+              drawHeader();
               clearScreen();
               tft.setTextColor(TFT_GREEN, TFT_BLACK);
               tft.setTextDatum(MC_DATUM);
@@ -1243,7 +1243,7 @@ void sweepQRCode(){
         }
     }
     else{
-      drawScreenLayout();
+      drawHeader();
       clearScreen();
       tft.setTextColor(TFT_GREEN, TFT_BLACK);
       tft.setTextDatum(MC_DATUM);
@@ -1253,7 +1253,7 @@ void sweepQRCode(){
   else{
     // We didnt activate the reader!
     log_e("Could not activate the barcode reader");
-    drawScreenLayout();
+    drawHeader();
     clearScreen();
     tft.setTextColor(TFT_GREEN, TFT_BLACK);
     tft.setTextDatum(MC_DATUM);
@@ -1261,7 +1261,7 @@ void sweepQRCode(){
     tft.drawString(F("Contact support"), tft.width() / 2, (tft.height() / 2) + 10);
   }
   headerTitle = "";
-  drawScreenLayout();
+  drawHeader();
 }
 
 void setup() {
@@ -1309,7 +1309,7 @@ void setup() {
 
   printIP5306Settings();
 
-  drawScreenLayout();
+  drawHeader();
   drawFooter();
   clearScreen();
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
@@ -1343,7 +1343,7 @@ void setup() {
     isNTPSet = true;
   }
 
-  drawScreenLayout();
+  drawHeader();
   clearScreen();
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
   tft.setTextDatum(MC_DATUM);
