@@ -19,6 +19,7 @@
 #include <NTPClient.h>
 #include <ArduinoJson.h>
 #include <SimpleTime.h>
+#include <Regexp.h>
 
 // Arduino Json Setup
 struct SpiRamAllocator {
@@ -883,6 +884,370 @@ void readCoinAPIData(){
   }
 }
 
+void sweepQRCode(){
+  drawScreenLayout();
+  clearScreen();
+  tft.setTextColor(TFT_GREEN, TFT_BLACK);
+  tft.setTextDatum(MC_DATUM);
+  tft.drawString(F("Please Scan Transaction QRCode"), tft.width() / 2, tft.height() / 2);
+  if(activateBarcodeScan(1000)){
+    // Reader active, read for code over serial with 6 second timeout
+    Barcode.setTimeout(6000);
+    String barcodeString = Barcode.readStringUntil('\r');
+    log_d("Barcode string was: %s with a length of %d", (char *)barcodeString.c_str(), sizeof((char *)barcodeString.c_str()));
+
+    // If read, check its a valid uuid4
+    MatchState ms;
+    ms.Target((char *)barcodeString.c_str());
+    const char * regex PROGMEM = "^[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]%-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]" \
+    "%-4[0-9a-f][0-9a-f][0-9a-f]%-[89ab][0-9a-f][0-9a-f][0-9a-f]%-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]$";
+    bool result = ms.Match(regex);
+    log_d("The string %s a uuid4", result?"was":"was not");
+
+    // If it is, try to get its details over https
+    if(result){
+      drawScreenLayout();
+      clearScreen();
+      tft.setTextColor(TFT_GREEN, TFT_BLACK);
+      tft.setTextDatum(MC_DATUM);
+      tft.drawString(F("Transaction code read"), tft.width() / 2, tft.height() / 2);
+      tft.drawString(F("Contacting PolyCoin for details"), tft.width() / 2, (tft.height() / 2) + 10);
+
+      // If it exists, show details on screen and allow for either canceling or scanning a tag
+      WiFiClientSecure *client = new WiFiClientSecure;
+        if(client) {
+          client -> setCACert(root_ca);
+          {
+            // Add a scoping block for HTTPClient https to make sure it is destroyed before WiFiClientSecure *client is 
+            HTTPClient https;
+            log_d("[HTTPS] begin...\n");
+            if (https.begin(*client, String("https://coin.polyb.io/transactions/escrow/") + barcodeString)) {  // HTTPS
+              log_d("[HTTPS] GET...\n");
+              // start connection and send HTTP header
+              int httpCode = https.GET();
+              // httpCode will be negative on error
+              if (httpCode > 0) {
+                // HTTP header has been send and Server response header has been handled
+                log_d("[HTTPS] GET... code: %d\n", httpCode);
+                // file found at server
+                if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
+                  String payload = https.getString();
+                  log_d("Payload: %s", payload.c_str());
+
+                  https.end();
+
+                  SpiRamJsonDocument doc(JSON_OBJECT_SIZE(7) + 250);
+                  DeserializationError error = deserializeJson(doc, payload);
+                  // Test if parsing succeeds.
+                  if (error) {
+                    log_e("deserializeJson() failed: %s", error.c_str());
+                    return;
+                  }
+
+                  const char* transaction = doc["transaction"];
+                  const char* origin = doc["origin"];
+                  float value = doc["value"];
+                  long created = doc["created"];
+                  const char* destination = doc["destination"];
+                  const char* resolvedTransaction = doc["resolvedTransaction"];
+                  long claimed = doc["claimed"];
+
+                  drawScreenLayout();
+                  clearScreen();
+
+                  tft.printf("Escrow Transaction ID:\n  %s\n", transaction);
+                  tft.printf("\nTransaction Value\n  %f\n", value);
+                  tft.printf("\nOrigin Coin ID:\n  %s\n", origin);
+                  tft.printf("\nCreated on:\n  %d:%d:%d %d/%d/%d\n", hour(created),
+                    minute(created), second(created), day(created), month(created), year(created));
+
+                  if(claimed == 0){
+                    tft.printf("\n\nEscrow Transaction has not been claimed!\nPresent Coin to claim the value");
+
+                    // If scanning a tag, try to post claim the transaction to the tag
+                    uint8_t success;
+                    uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
+                    uint8_t uidLength;                        // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
+
+                    success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
+                    
+                    if (success) {
+                      log_d("RFID Coin found, read ID...");
+                      drawScreenLayout();
+                      clearScreen();
+                      tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                      tft.setTextDatum(MC_DATUM);
+                      tft.drawString(F("Coin found, reading ID"), tft.width() / 2, tft.height() / 2);
+                      // Display some basic information about the card
+                      log_d("Found an ISO14443A card");
+                      log_d("  UID Length: %d bytes", uidLength);
+                      log_d("  UID Value: %02X:%02X:%02X:%02X:%02X:%02X:%02X", uid[0], uid[1], uid[2], uid[3], uid[4], uid[5], uid[6]);
+                      
+                      if (uidLength == 7)
+                      {
+                        uint8_t uriIdentifier = 0;
+                        char buffer[60];
+                        memset(buffer, 0, 60);
+                        if(nfc.ntag2xx_ReadNDEFString(&uriIdentifier, buffer, 60)){
+                          log_d("NDEF string read");
+                          drawScreenLayout();
+                          clearScreen();
+                          tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                          tft.setTextDatum(MC_DATUM);
+                          tft.drawString(F("Accessing coin data from PolyCoin"), tft.width() / 2, tft.height() / 2);
+
+                          log_d("[HTTPS] begin...\n");
+                          if (https.begin(*client, String("https://") + String(buffer))) {  // HTTPS
+                            log_d("[HTTPS] GET...\n");
+                            // start connection and send HTTP header
+                            int httpCode = https.GET();
+                            // httpCode will be negative on error
+                            if (httpCode > 0) {
+                              // HTTP header has been send and Server response header has been handled
+                              log_d("[HTTPS] GET... code: %d\n", httpCode);
+                              // file found at server
+                              if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
+                                String payload = https.getString();
+                                log_d("Payload: %s", payload.c_str());
+
+                                https.end();
+
+                                SpiRamJsonDocument doc(JSON_OBJECT_SIZE(6) + 90);
+                                DeserializationError error = deserializeJson(doc, payload);
+                                // Test if parsing succeeds.
+                                if (error) {
+                                  log_e("deserializeJson() failed: %s", error.c_str());
+                                  return;
+                                }
+
+                                const char* coin = doc["coin"];
+                                long reserved = doc["reserved"];
+                                long claimed = doc["claimed"];
+                                long modified = doc["modified"];
+                                float value = doc["value"];
+                                // float escrow = doc["escrow"];
+
+                                drawScreenLayout();
+                                clearScreen();
+
+                                tft.printf("Coin ID:\n  %s\n", coin);
+                                tft.printf("\nUID Value:\n  %02X:%02X:%02X:%02X:%02X:%02X:%02X\n", uid[0], uid[1], uid[2], uid[3], uid[4], uid[5], uid[6]);
+                                tft.printf("\nCurrent Value\n  %f\n", value);
+                                if(modified != 0){
+                                  tft.printf("\nLast modified:\n  %d:%d:%d %d/%d/%d\n", hour(modified),
+                                  minute(modified), second(modified), day(modified), month(modified), year(modified));
+                                }
+                                if(reserved != 0){
+                                  tft.printf("\nReserved on:\n  %d:%d:%d %d/%d/%d\n", hour(reserved),
+                                  minute(reserved), second(reserved), day(reserved), month(reserved), year(reserved));
+                                }
+                                if(claimed != 0){
+                                  tft.printf("\nClaimed on:\n  %d:%d:%d %d/%d/%d\n", hour(claimed),
+                                  minute(claimed), second(claimed), day(claimed), month(claimed), year(claimed));
+                                  tft.printf("\n\nValid coin!\nNow attempting to claim transaction\nPlease wait...");
+
+                                  // Attempt to claim the escrow to the presented coin
+                                  log_d("[HTTPS] begin...\n");
+                                  String escrowTransactionClaimLoc = "https://coin.polyb.io/transactions/escrow/" + String(transaction) + "/claim";
+                                  log_d("%s", escrowTransactionClaimLoc.c_str());
+                                  if (https.begin(*client, escrowTransactionClaimLoc)) {  // HTTPS
+                                    log_d("[HTTPS] POST...\n");
+                                    // start connection and send HTTP header
+                                    String body = "{\"key\":\"887dee7b-15a5-40fd-ae00-b852e99c3d49\",\"destination\":\"" + String(coin) + "\"}";
+                                    https.addHeader("Content-Type", "application/json");
+                                    const char * headerKeys[] = {"location"} ;
+                                    const size_t numberOfHeaders = 1;
+                                    https.collectHeaders(headerKeys, numberOfHeaders);
+                                    int httpCode = https.POST(body);
+                                    // httpCode will be negative on error
+                                    if (httpCode > 0) {
+                                      // HTTP header has been send and Server response header has been handled
+                                      log_d("[HTTPS] POST... code: %d\n", httpCode);
+                                      // file found at server
+                                      if (httpCode == HTTP_CODE_SEE_OTHER) {
+                                        String location = https.header("location");
+                                        https.end();
+
+                                        clearScreen();
+                                        tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                                        tft.setTextDatum(MC_DATUM);
+                                        tft.drawString(F("Escrow Transaction claimed to coin"), tft.width() / 2, tft.height() / 2);
+                                        tft.drawString(F("Obtaining resulting transaction"), tft.width() / 2, (tft.height() / 2) + 10);
+
+                                        // GET resulting transaction details
+                                        String tranactionLoc = "https://coin.polyb.io" + location;
+                                        log_d("[HTTPS] begin...\n");
+                                        if (https.begin(*client, tranactionLoc)) {  // HTTPS
+                                          log_d("[HTTPS] GET...\n");
+                                          // start connection and send HTTP header
+                                          int httpCode = https.GET();
+                                          // httpCode will be negative on error
+                                          if (httpCode > 0) {
+                                            // HTTP header has been send and Server response header has been handled
+                                            log_d("[HTTPS] GET... code: %d\n", httpCode);
+                                            // file found at server
+                                            if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
+                                              String payload = https.getString();
+                                              log_d("Payload: %s", payload.c_str());
+                                              SpiRamJsonDocument doc(JSON_OBJECT_SIZE(5) + 180);
+                                              DeserializationError error = deserializeJson(doc, payload);
+                                              // Test if parsing succeeds.
+                                              if (error) {
+                                                log_e("deserializeJson() failed: %s", error.c_str());
+                                                return;
+                                              }
+
+                                              const char* transaction = doc["transaction"];
+                                              const char* origin = doc["origin"];
+                                              const char* destination = doc["destination"];
+                                              float value = doc["value"];
+                                              long created = doc["created"];
+
+                                              clearScreen();
+
+                                              tft.printf("Escrow Transaction Successfully Claimed!\nResulting finalised transaction details:\n\nTransaction ID:\n  %s\n", transaction);
+                                              tft.printf("\nOrigin Coin ID:\n  %s\n", origin);
+                                              tft.printf("\nDestination Coin ID:\n  %s\n", destination);
+                                              tft.printf("\nTransaction Value:\n  %f\n", value);
+                                              tft.printf("\nCreated on:\n  %d:%d:%d %d/%d/%d\n", hour(created),
+                                              minute(created), second(created), day(created), month(created), year(created));
+                                              tft.printf("\n\nDisconnecting from PolyCoin.");
+                                            }
+                                          } else {
+                                            log_e("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
+                                            drawScreenLayout();
+                                            clearScreen();
+                                            tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                                            tft.setTextDatum(MC_DATUM);
+                                            tft.drawString(F("Network Error"), tft.width() / 2, tft.height() / 2);
+                                          }
+                                          https.end();
+                                        } else {
+                                          log_w("[HTTPS] Unable to connect\n");
+                                          drawScreenLayout();
+                                          clearScreen();
+                                          tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                                          tft.setTextDatum(MC_DATUM);
+                                          tft.drawString(F("Network Error"), tft.width() / 2, tft.height() / 2);
+                                        }
+                                      }
+                                      else{
+                                        log_e("Error httpcode not OK");
+                                        clearScreen();
+                                        tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                                        tft.setTextDatum(MC_DATUM);
+                                        tft.drawString(F("Could not claim escrow transaction"), tft.width() / 2, tft.height() / 2);
+                                        tft.drawString(F("Please try again"), tft.width() / 2, (tft.height() / 2) + 10);
+                                      }
+                                    }
+                                    else{
+                                      log_e("Error httpcode error");
+                                      clearScreen();
+                                      tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                                      tft.setTextDatum(MC_DATUM);
+                                      tft.drawString(F("Could not claim escrow transaction"), tft.width() / 2, tft.height() / 2);
+                                      tft.drawString(F("Please try again"), tft.width() / 2, (tft.height() / 2) + 10);
+                                    }
+                                  }
+                                  else{
+                                    log_e("Error opening client for /claim POST");
+                                    clearScreen();
+                                    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                                    tft.setTextDatum(MC_DATUM);
+                                    tft.drawString(F("Error finalising with PolyCoin"), tft.width() / 2, tft.height() / 2);
+                                    tft.drawString(F("Please try again"), tft.width() / 2, (tft.height() / 2) + 10);
+                                  }
+                                }
+                                else{
+                                  tft.printf("\n\nCoin not claimed\nTry again with another coin");
+                                }
+                              }
+                            } else {
+                              log_e("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
+                              drawScreenLayout();
+                              clearScreen();
+                              tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                              tft.setTextDatum(MC_DATUM);
+                              tft.drawString(F("Network Error"), tft.width() / 2, tft.height() / 2);
+                            }
+                            https.end();
+                          } else {
+                            log_w("[HTTPS] Unable to connect\n");
+                            drawScreenLayout();
+                            clearScreen();
+                            tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                            tft.setTextDatum(MC_DATUM);
+                            tft.drawString(F("Network Error"), tft.width() / 2, tft.height() / 2);
+                          }
+                        }
+                      }
+                      else{
+                        log_d("Non matching rfid tag");
+                        drawScreenLayout();
+                        clearScreen();
+                        tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                        tft.setTextDatum(MC_DATUM);
+                        tft.drawString(F("Not valid coin"), tft.width() / 2, tft.height() / 2);
+                      }
+                    }
+                    else{
+                      log_d("RFID Coin not found");
+                      drawScreenLayout();
+                      clearScreen();
+                      tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                      tft.setTextDatum(MC_DATUM);
+                      tft.drawString(F("Coin not found"), tft.width() / 2, tft.height() / 2);
+                    }
+                  }
+                  else{
+                    tft.printf("\nEscrow Transaction Claimed on:\n  %d:%d:%d %d/%d/%d\n", hour(claimed),
+                    minute(claimed), second(claimed), day(claimed), month(claimed), year(claimed));
+                    tft.printf("\nWith Transaction ID:\n  %s\n", resolvedTransaction);
+                    tft.printf("\nTo Coin ID:\n  %s\n", destination);
+                  }
+                }
+              } else {
+                log_e("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
+                drawScreenLayout();
+                clearScreen();
+                tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                tft.setTextDatum(MC_DATUM);
+                tft.drawString(F("Network Error"), tft.width() / 2, tft.height() / 2);
+              }
+              https.end();
+            } else {
+              log_w("[HTTPS] Unable to connect\n");
+              drawScreenLayout();
+              clearScreen();
+              tft.setTextColor(TFT_GREEN, TFT_BLACK);
+              tft.setTextDatum(MC_DATUM);
+              tft.drawString(F("Network Error"), tft.width() / 2, tft.height() / 2);
+            }
+            // End extra scoping block
+          }
+          delete client;
+        }
+    }
+    else{
+      drawScreenLayout();
+      clearScreen();
+      tft.setTextColor(TFT_GREEN, TFT_BLACK);
+      tft.setTextDatum(MC_DATUM);
+      tft.drawString(F("No Valid Code Read"), tft.width() / 2, tft.height() / 2);
+    }
+  }
+  else{
+    // We didnt activate the reader!
+    log_e("Could not activate the barcode reader");
+    drawScreenLayout();
+    clearScreen();
+    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString(F("Could not activate reader"), tft.width() / 2, tft.height() / 2);
+    tft.drawString(F("Contact support"), tft.width() / 2, (tft.height() / 2) + 10);
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   Barcode.begin(115200, SERIAL_8N1, 33, 26);
@@ -996,11 +1361,6 @@ void loop() {
   }
   else if(state == 3){
     state = 0;
-    drawScreenLayout();
-    clearScreen();
-    tft.setTextColor(TFT_GREEN, TFT_BLACK);
-    tft.setTextDatum(MC_DATUM);
-    tft.drawString(F("Buzzer Test"), tft.width() / 2, tft.height() / 2);
-    playSound();
+    sweepQRCode();
   }
 }
