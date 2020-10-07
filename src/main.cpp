@@ -825,15 +825,15 @@ void readCoinAPIData(){
                   tft.printf("\nCurrent Value:\n  %f\n", value);
                   tft.printf("\nEscrow Value:\n  %f\n", escrow);
                   if(reserved != 0){
-                    tft.printf("\nReserved on:\n  %d:%d:%d %d/%d/%d\n", hour(reserved),
+                    tft.printf("\nReserved on:\n  %02d:%02d:%02d %02d/%02d/%02d\n", hour(reserved),
                     minute(reserved), second(reserved), day(reserved), month(reserved), year(reserved));
                   }
                   if(claimed != 0){
-                    tft.printf("\nClaimed on:\n  %d:%d:%d %d/%d/%d\n", hour(claimed),
+                    tft.printf("\nClaimed on:\n  %02d:%02d:%02d %02d/%02d/%02d\n", hour(claimed),
                     minute(claimed), second(claimed), day(claimed), month(claimed), year(claimed));
                   }
                   if(modified != 0){
-                    tft.printf("\nLast modified:\n  %d:%d:%d %d/%d/%d\n", hour(modified),
+                    tft.printf("\nLast modified:\n  %02d:%02d:%02d %02d/%02d/%02d\n", hour(modified),
                     minute(modified), second(modified), day(modified), month(modified), year(modified));
                   }
                 }
@@ -956,9 +956,9 @@ void sweepQRCode(){
                   clearScreen();
 
                   tft.printf("Escrow Transaction ID:\n  %s\n", transaction);
-                  tft.printf("\nTransaction Value\n  %f\n", value);
+                  tft.printf("\nTransaction Value:\n  %f\n", value);
                   tft.printf("\nOrigin Coin ID:\n  %s\n", origin);
-                  tft.printf("\nCreated on:\n  %d:%d:%d %d/%d/%d\n", hour(created),
+                  tft.printf("\nCreated on:\n  %02d:%02d:%02d %02d/%02d/%02d\n", hour(created),
                     minute(created), second(created), day(created), month(created), year(created));
 
                   if(claimed == 0){
@@ -1032,17 +1032,17 @@ void sweepQRCode(){
 
                                 tft.printf("Coin ID:\n  %s\n", coin);
                                 tft.printf("\nUID Value:\n  %02X:%02X:%02X:%02X:%02X:%02X:%02X\n", uid[0], uid[1], uid[2], uid[3], uid[4], uid[5], uid[6]);
-                                tft.printf("\nCurrent Value\n  %f\n", value);
+                                tft.printf("\nCurrent Value:\n  %f\n", value);
                                 if(modified != 0){
-                                  tft.printf("\nLast modified:\n  %d:%d:%d %d/%d/%d\n", hour(modified),
+                                  tft.printf("\nLast modified:\n  %02d:%02d:%02d %02d/%02d/%02d\n", hour(modified),
                                   minute(modified), second(modified), day(modified), month(modified), year(modified));
                                 }
                                 if(reserved != 0){
-                                  tft.printf("\nReserved on:\n  %d:%d:%d %d/%d/%d\n", hour(reserved),
+                                  tft.printf("\nReserved on:\n  %02d:%02d:%02d %02d/%02d/%02d\n", hour(reserved),
                                   minute(reserved), second(reserved), day(reserved), month(reserved), year(reserved));
                                 }
                                 if(claimed != 0){
-                                  tft.printf("\nClaimed on:\n  %d:%d:%d %d/%d/%d\n", hour(claimed),
+                                  tft.printf("\nClaimed on:\n  %02d:%02d:%02d %02d/%02d/%02d\n", hour(claimed),
                                   minute(claimed), second(claimed), day(claimed), month(claimed), year(claimed));
                                   tft.printf("\n\nValid coin!\nNow attempting to claim transaction\nPlease wait...");
 
@@ -1109,7 +1109,7 @@ void sweepQRCode(){
                                               tft.printf("\nOrigin Coin ID:\n  %s\n", origin);
                                               tft.printf("\nDestination Coin ID:\n  %s\n", destination);
                                               tft.printf("\nTransaction Value:\n  %f\n", value);
-                                              tft.printf("\nCreated on:\n  %d:%d:%d %d/%d/%d\n", hour(created),
+                                              tft.printf("\nCreated on:\n  %02d:%02d:%02d %02d/%02d/%02d\n", hour(created),
                                               minute(created), second(created), day(created), month(created), year(created));
                                               tft.printf("\n\nDisconnecting from PolyCoin.");
                                             }
@@ -1200,7 +1200,7 @@ void sweepQRCode(){
                     }
                   }
                   else{
-                    tft.printf("\nEscrow Transaction Claimed on:\n  %d:%d:%d %d/%d/%d\n", hour(claimed),
+                    tft.printf("\nEscrow Transaction Claimed on:\n  %02d:%02d:%02d %02d/%02d/%02d\n", hour(claimed),
                     minute(claimed), second(claimed), day(claimed), month(claimed), year(claimed));
                     tft.printf("\nWith Transaction ID:\n  %s\n", resolvedTransaction);
                     tft.printf("\nTo Coin ID:\n  %s\n", destination);
