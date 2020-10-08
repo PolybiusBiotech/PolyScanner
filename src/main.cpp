@@ -38,7 +38,7 @@ WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "coin.polyb.io", 3600);
 bool isNTPSet = false;
 
-const char* root_ca PROGMEM = \
+const char* root_ca = \
 "-----BEGIN CERTIFICATE-----\n" \
 "MIIGEzCCA/ugAwIBAgIQfVtRJrR2uhHbdBYLvFMNpzANBgkqhkiG9w0BAQwFADCB\n" \
 "iDELMAkGA1UEBhMCVVMxEzARBgNVBAgTCk5ldyBKZXJzZXkxFDASBgNVBAcTC0pl\n" \
@@ -126,9 +126,7 @@ void shutdownSystem(){
   bool isOk = setPowerBoostKeepOn(1);
     
   if (!isOk) {
-    char *str = Wire.getErrorText(Wire.lastError());
-    String err = "Shutting down error, Wire " + String(str);
-    log_e("%s", err.c_str());
+    log_e("Shutting down error, Wire %s", Wire.getErrorText(Wire.lastError()));
   } else {
     log_d("Shutting down peripherals");
   }
@@ -137,7 +135,7 @@ void shutdownSystem(){
   nfc.shutDown(false, true);
   
   // Send command to sleep mode the barcode reader
-  uint8_t activate[] PROGMEM = {0x7E, 0x00, 0x08, 0x01, 0x00, 0xD9, 0xA5, 0xAB, 0xCD};
+  const uint8_t activate[]  = {0x7E, 0x00, 0x08, 0x01, 0x00, 0xD9, 0xA5, 0xAB, 0xCD};
   Barcode.write(activate, 9);
   delay(10);
 
@@ -180,7 +178,7 @@ void button_callback(Button2 &b) {
 }
 
 void button_init() {
-  uint8_t args = sizeof(g_btns) / sizeof(g_btns[0]);
+  const uint8_t args = sizeof(g_btns) / sizeof(g_btns[0]);
   pBtns = new Button2[args];
   for (int i = 0; i < args; ++i) {
     pBtns[i] = Button2(g_btns[i]);
@@ -261,26 +259,26 @@ void listDir(fs::FS &fs, const char *dirname, uint8_t levels) {
 
   File root = fs.open(dirname);
   if (!root) {
-    tft.println("- failed to open directory");
+    tft.println(F("- failed to open directory"));
     return;
   }
   if (!root.isDirectory()) {
-    tft.println(" - not a directory");
+    tft.println(F(" - not a directory"));
     return;
   }
 
   File file = root.openNextFile();
   while (file) {
     if (file.isDirectory()) {
-      tft.print("  DIR : ");
+      tft.print(F("  DIR : "));
       tft.println(file.name());
       if (levels) {
         listDir(fs, file.name(), levels - 1);
       }
     } else {
-      tft.print("  FILE: ");
+      tft.print(F("  FILE: "));
       tft.print(file.name());
-      tft.print("  SIZE: ");
+      tft.print(F("  SIZE: "));
       tft.println(file.size());
     }
     file = root.openNextFile();
@@ -296,7 +294,7 @@ bool activateBarcodeScan(long timeout){
   }
 
   // Send command to start scanning
-  uint8_t activate[] PROGMEM = {0x7E, 0x00, 0x08, 0x01, 0x00, 0x02, 0x01, 0xAB, 0xCD};
+  const uint8_t activate[] = {0x7E, 0x00, 0x08, 0x01, 0x00, 0x02, 0x01, 0xAB, 0xCD};
   Barcode.write(activate, 9);
 
   // Check we get back the OK response, or timeout elapses
@@ -818,7 +816,7 @@ void readCoinAPIData(){
         // Check the ndef record is a valid url
         MatchState ms;
         ms.Target(buffer);
-        const char * regex PROGMEM = "^coin.polyb.io/coins/[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]%-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]" \
+        const char * regex = "^coin.polyb.io/coins/[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]%-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]" \
         "%-4[0-9a-f][0-9a-f][0-9a-f]%-[89ab][0-9a-f][0-9a-f][0-9a-f]%-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]$";
         bool result = ms.Match(regex);
         log_d("The string %s a a valid coin id url", result?"was":"was not");
@@ -948,7 +946,7 @@ void sweepQRCode(){
     // If read, check its a valid uuid4
     MatchState ms;
     ms.Target((char *)barcodeString.c_str());
-    const char * regex PROGMEM = "^[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]%-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]" \
+    const char * regex = "^[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]%-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]" \
     "%-4[0-9a-f][0-9a-f][0-9a-f]%-[89ab][0-9a-f][0-9a-f][0-9a-f]%-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]$";
     bool result = ms.Match(regex);
     log_d("The string %s a uuid4", result?"was":"was not");
@@ -1039,7 +1037,7 @@ void sweepQRCode(){
                           // Check the ndef record is a valid url
                           MatchState ms;
                           ms.Target(buffer);
-                          const char * regex PROGMEM = "^coin.polyb.io/coins/[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]%-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]" \
+                          const char * regex = "^coin.polyb.io/coins/[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]%-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]" \
                           "%-4[0-9a-f][0-9a-f][0-9a-f]%-[89ab][0-9a-f][0-9a-f][0-9a-f]%-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]$";
                           bool result = ms.Match(regex);
                           log_d("The string %s a a valid coin id url", result?"was":"was not");
@@ -1313,7 +1311,7 @@ void setup() {
   Barcode.begin(115200, SERIAL_8N1, 33, 26);
 
   // Send command to exit sleep mode on Barcode scanner
-  uint8_t activate[] PROGMEM = {0x7E, 0x00, 0x08, 0x01, 0x00, 0xD9, 0x00, 0xAB, 0xCD};
+  const uint8_t activate[] = {0x7E, 0x00, 0x08, 0x01, 0x00, 0xD9, 0x00, 0xAB, 0xCD};
   Barcode.write(activate, 9);
   delay(10);
 
