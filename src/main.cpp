@@ -108,6 +108,7 @@ uint8_t g_btns[] = BUTTONS_MAP;
 char buff[512];
 Ticker btnscanT;
 Ticker redrawHFT;
+Ticker connectNTP;
 
 String headerTitle = "";
 
@@ -543,6 +544,29 @@ void drawFooter(){
   tft.drawString(F("READ COIN"), tft.width()/2, 320);
   tft.setTextDatum(BR_DATUM);
   tft.drawString(F("SWEEP ESCROW"), tft.width(), 320);
+}
+
+bool tryToConnectNTP(){
+  if(!isNTPSet){
+    if(timeClient.update()){
+      isNTPSet = true;
+      return true;
+    }
+  }
+  return false;
+}
+
+void tryToConnectNTPTickerCall(){
+  if(headerTitle == "" && !isNTPSet){
+    log_d("Attempting ticker ntp connect:");
+    if(tryToConnectNTP()){
+      log_d("Ticker ntp connected");
+      drawHeader();
+    }
+    else{
+      log_d("Ticker ntp connect failed");
+    }
+  }
 }
 
 void backgroundHeaderFooterDraw(){
@@ -1353,10 +1377,10 @@ void setup() {
   log_d("WiFi connected, IP address: %s", WiFi.localIP().toString().c_str());
 
   timeClient.begin();
-  if(!timeClient.update()){
+  if(!tryToConnectNTP()){
     log_w("Could not connect to NTP server, waiting 3 seconds then trying again.");
     delay(3000);
-    if(!timeClient.update()){
+    if(!tryToConnectNTP()){
       log_w("Could not connect a second time, aborting");
     }
     else{
@@ -1384,6 +1408,7 @@ void setup() {
 
   btnscanT.attach_ms(30, button_loop);
   redrawHFT.attach(60, backgroundHeaderFooterDraw);
+  connectNTP.attach(61, tryToConnectNTPTickerCall);
 
   log_d("Total heap: %d", ESP.getHeapSize());
   log_d("Free heap: %d", ESP.getFreeHeap());
