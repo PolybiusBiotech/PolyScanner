@@ -1213,6 +1213,13 @@ void sweepQRCode(){
                             tft.drawString(F("Not a valid coin"), tft.width() / 2, tft.height() / 2);
                           }
                         }
+                        else{
+                          log_d("No ndef record");
+                          clearScreen();
+                          tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                          tft.setTextDatum(MC_DATUM);
+                          tft.drawString(F("Coin had no ID"), tft.width() / 2, tft.height() / 2);
+                        }
                       }
                       else{
                         log_d("Non matching rfid tag");
