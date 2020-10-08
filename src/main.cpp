@@ -1358,15 +1358,6 @@ void setup() {
   // configure board to read RFID tags
   nfc.SAMConfig();
 
-  if (TFT_BL > 0) {
-    // configure LED PWM functionalitites
-    ledcSetup(5, 500, 8);
-    // attach the channel to the GPIO to be controlled
-    ledcAttachPin(TFT_BL, 5);
-    // Set brightness 0 - 255
-    ledcWrite(5, 25);
-  }
-
   printIP5306Settings();
 
   drawHeader();
