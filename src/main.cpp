@@ -35,7 +35,7 @@ using SpiRamJsonDocument = BasicJsonDocument<SpiRamAllocator>;
 
 WiFiMulti WiFimulti;
 WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP);
+NTPClient timeClient(ntpUDP, "coin.polyb.io", 3600);
 bool isNTPSet = false;
 
 const char* root_ca PROGMEM = \
@@ -1353,7 +1353,6 @@ void setup() {
   log_d("WiFi connected, IP address: %s", WiFi.localIP().toString().c_str());
 
   timeClient.begin();
-  timeClient.setTimeOffset(3600);
   if(!timeClient.update()){
     log_w("Could not connect to NTP server, waiting 3 seconds then trying again.");
     delay(3000);
