@@ -533,15 +533,15 @@ void drawHeader(){
   // tft.drawString(PROGMEM "\\____/|_|\\___/ \\__\\___|\\___|_| |_|", 35, 84+(8*5));
 }
 
-void drawFooter(){
+void drawFooter(String left, String middle, String right){
   tft.fillRect(0, 310, tft.width(), 10, TFT_BLACK);
   tft.drawLine(0, 309, 239, 309, TFT_ORANGE); // Bottom divider
   tft.setTextDatum(BL_DATUM);
-  tft.drawString(F("MINT COIN"), 0, 320);
+  tft.drawString(left, 0, 320);
   tft.setTextDatum(BC_DATUM);
-  tft.drawString(F("READ COIN"), tft.width()/2, 320);
+  tft.drawString(middle, tft.width()/2, 320);
   tft.setTextDatum(BR_DATUM);
-  tft.drawString(F("SWEEP ESCROW"), tft.width(), 320);
+  tft.drawString(right, tft.width(), 320);
 }
 
 bool tryToConnectNTP(){
@@ -1359,7 +1359,7 @@ void setup() {
   printIP5306Settings();
 
   drawHeader();
-  drawFooter();
+  drawFooter(F(""), F(""), F(""));
   clearScreen();
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
   tft.setTextDatum(MC_DATUM);
