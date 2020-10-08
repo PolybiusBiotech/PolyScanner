@@ -1328,6 +1328,15 @@ void setup() {
   tft.setTextColor(TFT_WHITE);
   tft.setCursor(0, 0);
 
+  if (TFT_BL > 0) {
+    // configure LED PWM functionalitites
+    ledcSetup(5, 500, 8);
+    // attach the channel to the GPIO to be controlled
+    ledcAttachPin(TFT_BL, 5);
+    // Set brightness 0 - 255
+    ledcWrite(5, 25);
+  }
+
   nfc.begin();
 
   uint32_t versiondata = nfc.getFirmwareVersion();
