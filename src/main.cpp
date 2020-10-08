@@ -791,86 +791,103 @@ void readCoinAPIData(){
       char buffer[60];
       memset(buffer, 0, 60);
       if(nfc.ntag2xx_ReadNDEFString(&uriIdentifier, buffer, 60)){
-        WiFiClientSecure *client = new WiFiClientSecure;
-        if(client) {
-          client -> setCACert(root_ca);
-          {
-            // Add a scoping block for HTTPClient https to make sure it is destroyed before WiFiClientSecure *client is 
-            HTTPClient https;
-            log_d("[HTTPS] begin...\n");
-            if (https.begin(*client, String("https://") + String(buffer))) {  // HTTPS
-              log_d("[HTTPS] GET...\n");
-              // start connection and send HTTP header
-              int httpCode = https.GET();
-              // httpCode will be negative on error
-              if (httpCode > 0) {
-                // HTTP header has been send and Server response header has been handled
-                log_d("[HTTPS] GET... code: %d\n", httpCode);
-                // file found at server
-                if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
-                  String payload = https.getString();
-                  log_d("Payload: %s", payload.c_str());
-                  SpiRamJsonDocument doc(JSON_OBJECT_SIZE(6) + 90);
-                  DeserializationError error = deserializeJson(doc, payload);
-                  // Test if parsing succeeds.
-                  if (error) {
-                    log_e("deserializeJson() failed: %s", error.c_str());
-                    return;
+        // Check the ndef record is a valid url
+        MatchState ms;
+        ms.Target(buffer);
+        const char * regex PROGMEM = "^coin.polyb.io/coins/[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]%-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]" \
+        "%-4[0-9a-f][0-9a-f][0-9a-f]%-[89ab][0-9a-f][0-9a-f][0-9a-f]%-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]$";
+        bool result = ms.Match(regex);
+        log_d("The string %s a a valid coin id url", result?"was":"was not");
+
+        if(result){
+          WiFiClientSecure *client = new WiFiClientSecure;
+          if(client) {
+            client -> setCACert(root_ca);
+            {
+              // Add a scoping block for HTTPClient https to make sure it is destroyed before WiFiClientSecure *client is 
+              HTTPClient https;
+              log_d("[HTTPS] begin...\n");
+              if (https.begin(*client, String("https://") + String(buffer))) {  // HTTPS
+                log_d("[HTTPS] GET...\n");
+                // start connection and send HTTP header
+                int httpCode = https.GET();
+                // httpCode will be negative on error
+                if (httpCode > 0) {
+                  // HTTP header has been send and Server response header has been handled
+                  log_d("[HTTPS] GET... code: %d\n", httpCode);
+                  // file found at server
+                  if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
+                    String payload = https.getString();
+                    log_d("Payload: %s", payload.c_str());
+                    SpiRamJsonDocument doc(JSON_OBJECT_SIZE(6) + 90);
+                    DeserializationError error = deserializeJson(doc, payload);
+                    // Test if parsing succeeds.
+                    if (error) {
+                      log_e("deserializeJson() failed: %s", error.c_str());
+                      return;
+                    }
+
+                    const char* coin = doc["coin"];
+                    long reserved = doc["reserved"];
+                    long claimed = doc["claimed"];
+                    long modified = doc["modified"];
+                    float value = doc["value"];
+                    float escrow = doc["escrow"];
+
+                    const char* coinDetails[78];
+                    memset(coinDetails, 0, 78);
+
+                    clearScreen();
+
+                    tft.printf("Coin ID:\n  %s\n", coin);
+                    tft.printf("\nUID Value:\n  %02X:%02X:%02X:%02X:%02X:%02X:%02X\n", uid[0], uid[1], uid[2], uid[3], uid[4], uid[5], uid[6]);
+                    tft.printf("\nCurrent Value:\n  %f\n", value);
+                    tft.printf("\nEscrow Value:\n  %f\n", escrow);
+                    if(reserved != 0){
+                      tft.printf("\nReserved on:\n  %02d:%02d:%02d %02d/%02d/%02d\n", hour(reserved),
+                      minute(reserved), second(reserved), day(reserved), month(reserved), year(reserved));
+                    }
+                    if(claimed != 0){
+                      tft.printf("\nClaimed on:\n  %02d:%02d:%02d %02d/%02d/%02d\n", hour(claimed),
+                      minute(claimed), second(claimed), day(claimed), month(claimed), year(claimed));
+                    }
+                    if(modified != 0){
+                      tft.printf("\nLast modified:\n  %02d:%02d:%02d %02d/%02d/%02d\n", hour(modified),
+                      minute(modified), second(modified), day(modified), month(modified), year(modified));
+                    }
                   }
-
-                  const char* coin = doc["coin"];
-                  long reserved = doc["reserved"];
-                  long claimed = doc["claimed"];
-                  long modified = doc["modified"];
-                  float value = doc["value"];
-                  float escrow = doc["escrow"];
-
-                  const char* coinDetails[78];
-                  memset(coinDetails, 0, 78);
-
+                } else {
+                  log_e("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
                   clearScreen();
-
-                  tft.printf("Coin ID:\n  %s\n", coin);
-                  tft.printf("\nUID Value:\n  %02X:%02X:%02X:%02X:%02X:%02X:%02X\n", uid[0], uid[1], uid[2], uid[3], uid[4], uid[5], uid[6]);
-                  tft.printf("\nCurrent Value:\n  %f\n", value);
-                  tft.printf("\nEscrow Value:\n  %f\n", escrow);
-                  if(reserved != 0){
-                    tft.printf("\nReserved on:\n  %02d:%02d:%02d %02d/%02d/%02d\n", hour(reserved),
-                    minute(reserved), second(reserved), day(reserved), month(reserved), year(reserved));
-                  }
-                  if(claimed != 0){
-                    tft.printf("\nClaimed on:\n  %02d:%02d:%02d %02d/%02d/%02d\n", hour(claimed),
-                    minute(claimed), second(claimed), day(claimed), month(claimed), year(claimed));
-                  }
-                  if(modified != 0){
-                    tft.printf("\nLast modified:\n  %02d:%02d:%02d %02d/%02d/%02d\n", hour(modified),
-                    minute(modified), second(modified), day(modified), month(modified), year(modified));
-                  }
+                  tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                  tft.setTextDatum(MC_DATUM);
+                  tft.drawString(F("Network Error"), tft.width() / 2, tft.height() / 2);
                 }
+                https.end();
               } else {
-                log_e("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
+                log_w("[HTTPS] Unable to connect\n");
                 clearScreen();
                 tft.setTextColor(TFT_GREEN, TFT_BLACK);
                 tft.setTextDatum(MC_DATUM);
                 tft.drawString(F("Network Error"), tft.width() / 2, tft.height() / 2);
               }
-              https.end();
-            } else {
-              log_w("[HTTPS] Unable to connect\n");
-              clearScreen();
-              tft.setTextColor(TFT_GREEN, TFT_BLACK);
-              tft.setTextDatum(MC_DATUM);
-              tft.drawString(F("Network Error"), tft.width() / 2, tft.height() / 2);
+              // End extra scoping block
             }
-            // End extra scoping block
+            delete client;
+          } else {
+            log_e("Unable to create client");
+            clearScreen();
+            tft.setTextColor(TFT_GREEN, TFT_BLACK);
+            tft.setTextDatum(MC_DATUM);
+            tft.drawString(F("Network Error"), tft.width() / 2, tft.height() / 2);
           }
-          delete client;
-        } else {
-          log_e("Unable to create client");
+        }
+        else{
+          log_e("Bad coin url");
           clearScreen();
           tft.setTextColor(TFT_GREEN, TFT_BLACK);
           tft.setTextDatum(MC_DATUM);
-          tft.drawString(F("Network Error"), tft.width() / 2, tft.height() / 2);
+          tft.drawString(F("Invalid coin details"), tft.width() / 2, tft.height() / 2);
         }
       }
       else{
@@ -995,145 +1012,163 @@ void sweepQRCode(){
                         memset(buffer, 0, 60);
                         if(nfc.ntag2xx_ReadNDEFString(&uriIdentifier, buffer, 60)){
                           log_d("NDEF string read");
-                          clearScreen();
-                          tft.setTextColor(TFT_GREEN, TFT_BLACK);
-                          tft.setTextDatum(MC_DATUM);
-                          tft.drawString(F("Accessing coin data from PolyCoin"), tft.width() / 2, tft.height() / 2);
+                          // Check the ndef record is a valid url
+                          MatchState ms;
+                          ms.Target(buffer);
+                          const char * regex PROGMEM = "^coin.polyb.io/coins/[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]%-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]" \
+                          "%-4[0-9a-f][0-9a-f][0-9a-f]%-[89ab][0-9a-f][0-9a-f][0-9a-f]%-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]$";
+                          bool result = ms.Match(regex);
+                          log_d("The string %s a a valid coin id url", result?"was":"was not");
 
-                          log_d("[HTTPS] begin...\n");
-                          if (https.begin(*client, String("https://") + String(buffer))) {  // HTTPS
-                            log_d("[HTTPS] GET...\n");
-                            // start connection and send HTTP header
-                            int httpCode = https.GET();
-                            // httpCode will be negative on error
-                            if (httpCode > 0) {
-                              // HTTP header has been send and Server response header has been handled
-                              log_d("[HTTPS] GET... code: %d\n", httpCode);
-                              // file found at server
-                              if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
-                                String payload = https.getString();
-                                log_d("Payload: %s", payload.c_str());
+                          if(result){
+                            clearScreen();
+                            tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                            tft.setTextDatum(MC_DATUM);
+                            tft.drawString(F("Accessing coin data from PolyCoin"), tft.width() / 2, tft.height() / 2);
 
-                                https.end();
+                            log_d("[HTTPS] begin...\n");
+                            if (https.begin(*client, String("https://") + String(buffer))) {  // HTTPS
+                              log_d("[HTTPS] GET...\n");
+                              // start connection and send HTTP header
+                              int httpCode = https.GET();
+                              // httpCode will be negative on error
+                              if (httpCode > 0) {
+                                // HTTP header has been send and Server response header has been handled
+                                log_d("[HTTPS] GET... code: %d\n", httpCode);
+                                // file found at server
+                                if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
+                                  String payload = https.getString();
+                                  log_d("Payload: %s", payload.c_str());
 
-                                SpiRamJsonDocument doc(JSON_OBJECT_SIZE(6) + 90);
-                                DeserializationError error = deserializeJson(doc, payload);
-                                // Test if parsing succeeds.
-                                if (error) {
-                                  log_e("deserializeJson() failed: %s", error.c_str());
-                                  return;
-                                }
+                                  https.end();
 
-                                const char* coin = doc["coin"];
-                                long reserved = doc["reserved"];
-                                long claimed = doc["claimed"];
-                                long modified = doc["modified"];
-                                float value = doc["value"];
-                                // float escrow = doc["escrow"];
+                                  SpiRamJsonDocument doc(JSON_OBJECT_SIZE(6) + 90);
+                                  DeserializationError error = deserializeJson(doc, payload);
+                                  // Test if parsing succeeds.
+                                  if (error) {
+                                    log_e("deserializeJson() failed: %s", error.c_str());
+                                    return;
+                                  }
 
-                                clearScreen();
+                                  const char* coin = doc["coin"];
+                                  long reserved = doc["reserved"];
+                                  long claimed = doc["claimed"];
+                                  long modified = doc["modified"];
+                                  float value = doc["value"];
+                                  // float escrow = doc["escrow"];
 
-                                tft.printf("Coin ID:\n  %s\n", coin);
-                                tft.printf("\nUID Value:\n  %02X:%02X:%02X:%02X:%02X:%02X:%02X\n", uid[0], uid[1], uid[2], uid[3], uid[4], uid[5], uid[6]);
-                                tft.printf("\nCurrent Value:\n  %f\n", value);
-                                if(modified != 0){
-                                  tft.printf("\nLast modified:\n  %02d:%02d:%02d %02d/%02d/%02d\n", hour(modified),
-                                  minute(modified), second(modified), day(modified), month(modified), year(modified));
-                                }
-                                if(reserved != 0){
-                                  tft.printf("\nReserved on:\n  %02d:%02d:%02d %02d/%02d/%02d\n", hour(reserved),
-                                  minute(reserved), second(reserved), day(reserved), month(reserved), year(reserved));
-                                }
-                                if(claimed != 0){
-                                  tft.printf("\nClaimed on:\n  %02d:%02d:%02d %02d/%02d/%02d\n", hour(claimed),
-                                  minute(claimed), second(claimed), day(claimed), month(claimed), year(claimed));
-                                  tft.printf("\n\nValid coin!\nNow attempting to claim transaction\nPlease wait...");
+                                  clearScreen();
 
-                                  // Attempt to claim the escrow to the presented coin
-                                  log_d("[HTTPS] begin...\n");
-                                  String escrowTransactionClaimLoc = "https://coin.polyb.io/transactions/escrow/" + String(transaction) + "/claim";
-                                  log_d("%s", escrowTransactionClaimLoc.c_str());
-                                  if (https.begin(*client, escrowTransactionClaimLoc)) {  // HTTPS
-                                    log_d("[HTTPS] POST...\n");
-                                    // start connection and send HTTP header
-                                    String body = "{\"key\":\"887dee7b-15a5-40fd-ae00-b852e99c3d49\",\"destination\":\"" + String(coin) + "\"}";
-                                    https.addHeader("Content-Type", "application/json");
-                                    const char * headerKeys[] = {"location"} ;
-                                    const size_t numberOfHeaders = 1;
-                                    https.collectHeaders(headerKeys, numberOfHeaders);
-                                    int httpCode = https.POST(body);
-                                    // httpCode will be negative on error
-                                    if (httpCode > 0) {
-                                      // HTTP header has been send and Server response header has been handled
-                                      log_d("[HTTPS] POST... code: %d\n", httpCode);
-                                      // file found at server
-                                      if (httpCode == HTTP_CODE_SEE_OTHER) {
-                                        String location = https.header("location");
-                                        https.end();
+                                  tft.printf("Coin ID:\n  %s\n", coin);
+                                  tft.printf("\nUID Value:\n  %02X:%02X:%02X:%02X:%02X:%02X:%02X\n", uid[0], uid[1], uid[2], uid[3], uid[4], uid[5], uid[6]);
+                                  tft.printf("\nCurrent Value:\n  %f\n", value);
+                                  if(modified != 0){
+                                    tft.printf("\nLast modified:\n  %02d:%02d:%02d %02d/%02d/%02d\n", hour(modified),
+                                    minute(modified), second(modified), day(modified), month(modified), year(modified));
+                                  }
+                                  if(reserved != 0){
+                                    tft.printf("\nReserved on:\n  %02d:%02d:%02d %02d/%02d/%02d\n", hour(reserved),
+                                    minute(reserved), second(reserved), day(reserved), month(reserved), year(reserved));
+                                  }
+                                  if(claimed != 0){
+                                    tft.printf("\nClaimed on:\n  %02d:%02d:%02d %02d/%02d/%02d\n", hour(claimed),
+                                    minute(claimed), second(claimed), day(claimed), month(claimed), year(claimed));
+                                    tft.printf("\n\nValid coin!\nNow attempting to claim transaction\nPlease wait...");
 
-                                        clearScreen();
-                                        tft.setTextColor(TFT_GREEN, TFT_BLACK);
-                                        tft.setTextDatum(MC_DATUM);
-                                        tft.drawString(F("Escrow Transaction claimed to coin"), tft.width() / 2, tft.height() / 2);
-                                        tft.drawString(F("Obtaining resulting transaction"), tft.width() / 2, (tft.height() / 2) + 10);
+                                    // Attempt to claim the escrow to the presented coin
+                                    log_d("[HTTPS] begin...\n");
+                                    String escrowTransactionClaimLoc = "https://coin.polyb.io/transactions/escrow/" + String(transaction) + "/claim";
+                                    log_d("%s", escrowTransactionClaimLoc.c_str());
+                                    if (https.begin(*client, escrowTransactionClaimLoc)) {  // HTTPS
+                                      log_d("[HTTPS] POST...\n");
+                                      // start connection and send HTTP header
+                                      String body = "{\"key\":\"887dee7b-15a5-40fd-ae00-b852e99c3d49\",\"destination\":\"" + String(coin) + "\"}";
+                                      https.addHeader("Content-Type", "application/json");
+                                      const char * headerKeys[] = {"location"} ;
+                                      const size_t numberOfHeaders = 1;
+                                      https.collectHeaders(headerKeys, numberOfHeaders);
+                                      int httpCode = https.POST(body);
+                                      // httpCode will be negative on error
+                                      if (httpCode > 0) {
+                                        // HTTP header has been send and Server response header has been handled
+                                        log_d("[HTTPS] POST... code: %d\n", httpCode);
+                                        // file found at server
+                                        if (httpCode == HTTP_CODE_SEE_OTHER) {
+                                          String location = https.header("location");
+                                          https.end();
 
-                                        // GET resulting transaction details
-                                        String tranactionLoc = "https://coin.polyb.io" + location;
-                                        log_d("[HTTPS] begin...\n");
-                                        if (https.begin(*client, tranactionLoc)) {  // HTTPS
-                                          log_d("[HTTPS] GET...\n");
-                                          // start connection and send HTTP header
-                                          int httpCode = https.GET();
-                                          // httpCode will be negative on error
-                                          if (httpCode > 0) {
-                                            // HTTP header has been send and Server response header has been handled
-                                            log_d("[HTTPS] GET... code: %d\n", httpCode);
-                                            // file found at server
-                                            if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
-                                              String payload = https.getString();
-                                              log_d("Payload: %s", payload.c_str());
-                                              SpiRamJsonDocument doc(JSON_OBJECT_SIZE(5) + 180);
-                                              DeserializationError error = deserializeJson(doc, payload);
-                                              // Test if parsing succeeds.
-                                              if (error) {
-                                                log_e("deserializeJson() failed: %s", error.c_str());
-                                                return;
+                                          clearScreen();
+                                          tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                                          tft.setTextDatum(MC_DATUM);
+                                          tft.drawString(F("Escrow Transaction claimed to coin"), tft.width() / 2, tft.height() / 2);
+                                          tft.drawString(F("Obtaining resulting transaction"), tft.width() / 2, (tft.height() / 2) + 10);
+
+                                          // GET resulting transaction details
+                                          String tranactionLoc = "https://coin.polyb.io" + location;
+                                          log_d("[HTTPS] begin...\n");
+                                          if (https.begin(*client, tranactionLoc)) {  // HTTPS
+                                            log_d("[HTTPS] GET...\n");
+                                            // start connection and send HTTP header
+                                            int httpCode = https.GET();
+                                            // httpCode will be negative on error
+                                            if (httpCode > 0) {
+                                              // HTTP header has been send and Server response header has been handled
+                                              log_d("[HTTPS] GET... code: %d\n", httpCode);
+                                              // file found at server
+                                              if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
+                                                String payload = https.getString();
+                                                log_d("Payload: %s", payload.c_str());
+                                                SpiRamJsonDocument doc(JSON_OBJECT_SIZE(5) + 180);
+                                                DeserializationError error = deserializeJson(doc, payload);
+                                                // Test if parsing succeeds.
+                                                if (error) {
+                                                  log_e("deserializeJson() failed: %s", error.c_str());
+                                                  return;
+                                                }
+
+                                                const char* transaction = doc["transaction"];
+                                                const char* origin = doc["origin"];
+                                                const char* destination = doc["destination"];
+                                                float value = doc["value"];
+                                                long created = doc["created"];
+
+                                                clearScreen();
+
+                                                tft.printf("Escrow Transaction Successfully Claimed!\nResulting finalised transaction details:\n\nTransaction ID:\n  %s\n", transaction);
+                                                tft.printf("\nOrigin Coin ID:\n  %s\n", origin);
+                                                tft.printf("\nDestination Coin ID:\n  %s\n", destination);
+                                                tft.printf("\nTransaction Value:\n  %f\n", value);
+                                                tft.printf("\nCreated on:\n  %02d:%02d:%02d %02d/%02d/%02d\n", hour(created),
+                                                minute(created), second(created), day(created), month(created), year(created));
+                                                tft.printf("\n\nDisconnecting from PolyCoin.");
                                               }
-
-                                              const char* transaction = doc["transaction"];
-                                              const char* origin = doc["origin"];
-                                              const char* destination = doc["destination"];
-                                              float value = doc["value"];
-                                              long created = doc["created"];
-
+                                            } else {
+                                              log_e("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
                                               clearScreen();
-
-                                              tft.printf("Escrow Transaction Successfully Claimed!\nResulting finalised transaction details:\n\nTransaction ID:\n  %s\n", transaction);
-                                              tft.printf("\nOrigin Coin ID:\n  %s\n", origin);
-                                              tft.printf("\nDestination Coin ID:\n  %s\n", destination);
-                                              tft.printf("\nTransaction Value:\n  %f\n", value);
-                                              tft.printf("\nCreated on:\n  %02d:%02d:%02d %02d/%02d/%02d\n", hour(created),
-                                              minute(created), second(created), day(created), month(created), year(created));
-                                              tft.printf("\n\nDisconnecting from PolyCoin.");
+                                              tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                                              tft.setTextDatum(MC_DATUM);
+                                              tft.drawString(F("Network Error"), tft.width() / 2, tft.height() / 2);
                                             }
+                                            https.end();
                                           } else {
-                                            log_e("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
+                                            log_w("[HTTPS] Unable to connect\n");
                                             clearScreen();
                                             tft.setTextColor(TFT_GREEN, TFT_BLACK);
                                             tft.setTextDatum(MC_DATUM);
                                             tft.drawString(F("Network Error"), tft.width() / 2, tft.height() / 2);
                                           }
-                                          https.end();
-                                        } else {
-                                          log_w("[HTTPS] Unable to connect\n");
+                                        }
+                                        else{
+                                          log_e("Error httpcode not OK");
                                           clearScreen();
                                           tft.setTextColor(TFT_GREEN, TFT_BLACK);
                                           tft.setTextDatum(MC_DATUM);
-                                          tft.drawString(F("Network Error"), tft.width() / 2, tft.height() / 2);
+                                          tft.drawString(F("Could not claim escrow transaction"), tft.width() / 2, tft.height() / 2);
+                                          tft.drawString(F("Please try again"), tft.width() / 2, (tft.height() / 2) + 10);
                                         }
                                       }
                                       else{
-                                        log_e("Error httpcode not OK");
+                                        log_e("Error httpcode error");
                                         clearScreen();
                                         tft.setTextColor(TFT_GREEN, TFT_BLACK);
                                         tft.setTextDatum(MC_DATUM);
@@ -1142,41 +1177,40 @@ void sweepQRCode(){
                                       }
                                     }
                                     else{
-                                      log_e("Error httpcode error");
+                                      log_e("Error opening client for /claim POST");
                                       clearScreen();
                                       tft.setTextColor(TFT_GREEN, TFT_BLACK);
                                       tft.setTextDatum(MC_DATUM);
-                                      tft.drawString(F("Could not claim escrow transaction"), tft.width() / 2, tft.height() / 2);
+                                      tft.drawString(F("Error finalising with PolyCoin"), tft.width() / 2, tft.height() / 2);
                                       tft.drawString(F("Please try again"), tft.width() / 2, (tft.height() / 2) + 10);
                                     }
                                   }
                                   else{
-                                    log_e("Error opening client for /claim POST");
-                                    clearScreen();
-                                    tft.setTextColor(TFT_GREEN, TFT_BLACK);
-                                    tft.setTextDatum(MC_DATUM);
-                                    tft.drawString(F("Error finalising with PolyCoin"), tft.width() / 2, tft.height() / 2);
-                                    tft.drawString(F("Please try again"), tft.width() / 2, (tft.height() / 2) + 10);
+                                    tft.printf("\n\nCoin not claimed\nTry again with another coin");
                                   }
                                 }
-                                else{
-                                  tft.printf("\n\nCoin not claimed\nTry again with another coin");
-                                }
+                              } else {
+                                log_e("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
+                                clearScreen();
+                                tft.setTextColor(TFT_GREEN, TFT_BLACK);
+                                tft.setTextDatum(MC_DATUM);
+                                tft.drawString(F("Network Error"), tft.width() / 2, tft.height() / 2);
                               }
+                              https.end();
                             } else {
-                              log_e("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
+                              log_w("[HTTPS] Unable to connect\n");
                               clearScreen();
                               tft.setTextColor(TFT_GREEN, TFT_BLACK);
                               tft.setTextDatum(MC_DATUM);
                               tft.drawString(F("Network Error"), tft.width() / 2, tft.height() / 2);
                             }
-                            https.end();
-                          } else {
-                            log_w("[HTTPS] Unable to connect\n");
+                          }
+                          else{
+                            log_d("Non matching ndef record");
                             clearScreen();
                             tft.setTextColor(TFT_GREEN, TFT_BLACK);
                             tft.setTextDatum(MC_DATUM);
-                            tft.drawString(F("Network Error"), tft.width() / 2, tft.height() / 2);
+                            tft.drawString(F("Not a valid coin"), tft.width() / 2, tft.height() / 2);
                           }
                         }
                       }
