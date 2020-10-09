@@ -146,7 +146,7 @@ void shutdownSystem(){
   delay(1000);
 
   log_d("Shutting down esp32");
-  esp_sleep_enable_ext0_wakeup((gpio_num_t)BUTTON_3, LOW);
+  esp_sleep_enable_ext0_wakeup((gpio_num_t)BUTTON_2, LOW);
   esp_deep_sleep_start();
 }
 
@@ -184,9 +184,6 @@ void button_init() {
     pBtns[i] = Button2(g_btns[i]);
     pBtns[i].setPressedHandler(button_callback);
   }
-  pBtns[2].setLongClickHandler([](Button2 &b) {
-    shutdownSystem();
-  });
 }
 
 void button_loop() {
@@ -513,24 +510,6 @@ void drawHeader(){
     tft.fillRect(xpos-22, 7-5, 2, 4, TFT_ORANGE);
     tft.fillRect(xpos-27, 7-4, 5, 2, TFT_ORANGE);
   }
-  
-
-
-  // ASCII Logo
-  // tft.drawString(PROGMEM " _____      _       _     _", 0, 20);
-  // tft.drawString(PROGMEM "|  __ \\    | |     | |   (_)", 0, 20+8);
-  // tft.drawString(PROGMEM "| |__) |__ | |_   _| |__  _ _   _ ___", 0, 20+(8*2));
-  // tft.drawString(PROGMEM "|  ___/ _ \\| | | | | '_ \\| | | | / __|", 0, 20+(8*3));
-  // tft.drawString(PROGMEM "| |  | (_) | | |_| | |_) | | |_| \\__ \\", 0, 20+(8*4));
-  // tft.drawString(PROGMEM "|_|   \\___/|_|\\__, |_.__/|_|\\__,_|___/", 0, 20+(8*5));
-  // tft.drawString(PROGMEM "               __/ |                  ", 0, 20+(8*6));
-  // tft.drawString(PROGMEM "              |___/                   ", 0, 20+(8*7));
-  // tft.drawString(PROGMEM "______ _       _            _", 35, 84);
-  // tft.drawString(PROGMEM "| ___ (_)     | |          | |", 35, 84+8);
-  // tft.drawString(PROGMEM "| |_/ /_  ___ | |_ ___  ___| |__", 35, 84+(8*2));
-  // tft.drawString(PROGMEM "| ___ \\ |/ _ \\| __/ _ \\/ __| '_ \\", 35, 84+(8*3));
-  // tft.drawString(PROGMEM "| |_/ / | (_) | ||  __/ (__| | | |", 35, 84+(8*4));
-  // tft.drawString(PROGMEM "\\____/|_|\\___/ \\__\\___|\\___|_| |_|", 35, 84+(8*5));
 }
 
 void drawFooter(String left, String middle, String right){
@@ -575,6 +554,7 @@ void backgroundHeaderFooterDraw(){
 void mintNewCoin(){
   headerTitle = "Mint Fresh Coin";
   drawHeader();
+  drawFooter("", "", "");
   clearScreen();
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
   tft.setTextDatum(MC_DATUM);
@@ -778,13 +758,12 @@ void mintNewCoin(){
     tft.setTextDatum(MC_DATUM);
     tft.drawString(F("Could not read Coin"), tft.width() / 2, tft.height() / 2);
   }
-  headerTitle = "";
-  drawHeader();
 }
 
 void readCoinAPIData(){
   headerTitle = "Read Coin Details";
   drawHeader();
+  drawFooter("", "", "");
   clearScreen();
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
   tft.setTextDatum(MC_DATUM);
@@ -926,8 +905,6 @@ void readCoinAPIData(){
     tft.setTextDatum(MC_DATUM);
     tft.drawString(F("Could not read Coin"), tft.width() / 2, tft.height() / 2);
   }
-  headerTitle = "";
-  drawHeader();
 }
 
 void sweepQRCode(){
@@ -1302,6 +1279,108 @@ void sweepQRCode(){
     tft.drawString(F("Could not activate reader"), tft.width() / 2, tft.height() / 2);
     tft.drawString(F("Contact support"), tft.width() / 2, (tft.height() / 2) + 10);
   }
+}
+
+void mainMenu(){
+  drawHeader();
+  drawFooter("   UP", "SELECT", "DOWN   ");
+  clearScreen();
+  // ASCII Logo
+  tft.print(" _____      _       _     _\n");
+  tft.print("|  __ \\    | |     | |   (_)\n");
+  tft.print("| |__) |__ | |_   _| |__  _ _   _ ___\n");
+  tft.print("|  ___/ _ \\| | | | | '_ \\| | | | / __|\n");
+  tft.print("| |  | (_) | | |_| | |_) | | |_| \\__ \\\n");
+  tft.print("|_|   \\___/|_|\\__, |_.__/|_|\\__,_|___/\n");
+  tft.print("               __/ |\n");
+  tft.print("              |___/\n");
+  tft.print("      ______ _       _            _\n");
+  tft.print("      | ___ (_)     | |          | |\n");
+  tft.print("      | |_/ /_  ___ | |_ ___  ___| |__\n");
+  tft.print("      | ___ \\ |/ _ \\| __/ _ \\/ __| '_ \\\n");
+  tft.print("      | |_/ / | (_) | ||  __/ (__| | | |\n");
+  tft.print("      \\____/|_|\\___/ \\__\\___|\\___|_| |_|\n");
+
+  // Draw list
+  uint8_t selection = 0;
+  uint8_t active = 1;
+  while(!selection){
+    tft.setCursor(0, 170);
+    tft.fillRect(0, 170, tft.width(), 140, TFT_BLACK);
+
+    if(active == 1){
+    tft.setTextColor(TFT_BLACK, TFT_GREEN);
+    tft.print("* Read Coin Data");
+    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+    tft.print("\n\nSweep QRCode Transaction\n\nMint New Coin\n\nShutdown");
+    }
+    else if(active == 2){
+    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+    tft.print("Read Coin Data");
+    tft.setTextColor(TFT_BLACK, TFT_GREEN);
+    tft.print("\n\n* Sweep QRCode Transaction");
+    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+    tft.print("\n\nMint New Coin\n\nShutdown");
+    }
+    else if(active == 3){
+    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+    tft.print("Read Coin Data\n\nSweep QRCode Transaction");
+    tft.setTextColor(TFT_BLACK, TFT_GREEN);
+    tft.print("\n\n* Mint New Coin");
+    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+    tft.print("\n\nShutdown");
+    }
+    else if(active == 4){
+    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+    tft.print("Read Coin Data\n\nSweep QRCode Transaction\n\nMint New Coin");
+    tft.setTextColor(TFT_BLACK, TFT_GREEN);
+    tft.print("\n\n* Shutdown");
+    }
+
+    state = 0;
+    while(!state){
+      delay(20);
+    }
+    if(state == 1){
+      // Up button
+      active--;
+      if(active < 1){
+        active = 4;
+      }
+    }
+    else if(state == 3){
+      // Down button
+      active++;
+      if(active > 4){
+        active = 1;
+      }
+    }
+    else if(state == 2){
+      selection = active;
+    }
+    state = 0;
+  }
+
+  if(selection == 1){
+    readCoinAPIData();
+  }
+  else if(selection == 2){
+    sweepQRCode();
+  }
+  else if(selection == 3){
+    mintNewCoin();
+  }
+  else if(selection == 4){
+    shutdownSystem();
+  }
+
+  drawFooter("", "EXIT", "");
+  state = 0;
+  while(state != 2){
+    state = 0;
+    delay(10);
+  }
+  state = 0;
   headerTitle = "";
   drawHeader();
 }
@@ -1416,17 +1495,5 @@ void setup() {
 }
 
 void loop() {
-  // **********************************************************************************************
-  if(state == 1){
-    state = 0;
-    mintNewCoin();
-  }
-  else if(state == 2){ // Middle Button
-    state = 0;
-    readCoinAPIData(); 
-  }
-  else if(state == 3){
-    state = 0;
-    sweepQRCode();
-  }
+  mainMenu();
 }
