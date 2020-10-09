@@ -1492,8 +1492,10 @@ void setup() {
   log_d("Total PSRAM: %d", ESP.getPsramSize());
   log_d("Free PSRAM: %d", ESP.getFreePsram());
   log_d("Used PSRAM: %d", ESP.getPsramSize() - ESP.getFreePsram());
+  log_d("Flash chip size: %d", ESP.getFlashChipSize());
 }
 
 void loop() {
   mainMenu();
+  log_d("Minimum heap so far: %d", ESP.getMinFreeHeap());
 }
