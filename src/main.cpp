@@ -1283,7 +1283,7 @@ void sweepQRCode(){
 
 void mainMenu(){
   drawHeader();
-  drawFooter("   UP", "SELECT", "DOWN   ");
+  drawFooter("       UP", "SELECT", "DOWN      ");
   clearScreen();
   // ASCII Logo
   tft.print(" _____      _       _     _\n");
@@ -1306,7 +1306,7 @@ void mainMenu(){
   uint8_t active = 1;
   while(!selection){
     tft.setCursor(0, 170);
-    tft.fillRect(0, 170, tft.width(), 140, TFT_BLACK);
+    tft.fillRect(0, 170, tft.width(), 130, TFT_BLACK);
 
     if(active == 1){
     tft.setTextColor(TFT_BLACK, TFT_GREEN);
