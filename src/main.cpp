@@ -431,7 +431,12 @@ void drawHeader(){
   }
 
   tft.setTextDatum(TC_DATUM);
-  tft.drawString(headerTitle, (tft.width()/2)-20, 0);
+  if(headerTitle == ""){
+    tft.drawString(WiFi.localIP().toString(), (tft.width()/2)-20, 0);
+  }
+  else{
+    tft.drawString(headerTitle, (tft.width()/2)-20, 0);
+  }
 
   // Wifi icon
   long wifiStrength = WiFi.RSSI();
