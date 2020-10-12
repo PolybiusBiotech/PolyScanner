@@ -992,11 +992,22 @@ void sweepQRCode(){
                     tft.printf("\n\nEscrow Transaction has not been claimed!\nPresent Coin to claim the value");
 
                     // If scanning a tag, try to post claim the transaction to the tag
-                    uint8_t success;
+                    uint8_t success = 0;
                     uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
                     uint8_t uidLength;                        // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
 
-                    success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
+                    state = 0;
+                    drawFooter("", "CANCEL", "");
+                    while(!nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength, 500)){
+                      if(state != 0){
+                        clearScreen();
+                        tft.printf("Escrow Sweep Canceled\n\nPress Exit to return");
+                        return;
+                      }
+                    }
+
+                    drawFooter("", "", "");
+                    success = 1;
                     
                     if (success) {
                       log_d("RFID Coin found, read ID...");
