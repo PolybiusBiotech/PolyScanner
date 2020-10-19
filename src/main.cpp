@@ -1520,15 +1520,6 @@ void setup() {
     isNTPSet = true;
   }
 
-  drawHeader();
-  clearScreen();
-  tft.setTextColor(TFT_GREEN, TFT_BLACK);
-  tft.setTextDatum(MC_DATUM);
-  tft.drawString(F("WiFi Connected, IP:"), tft.width() / 2, tft.height() / 2);
-  tft.drawString(WiFi.localIP().toString(), tft.width() / 2, (tft.height() / 2)+10);
-
-  delay(3000);
-
   //spisd_test();
   buzzer_test();
   button_init();
