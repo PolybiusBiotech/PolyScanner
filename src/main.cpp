@@ -20,6 +20,7 @@
 #include <ArduinoJson.h>
 #include <SimpleTime.h>
 #include <Regexp.h>
+#include <Adafruit_PWMServoDriver.h>
 
 // Arduino Json Setup
 struct SpiRamAllocator {
@@ -101,6 +102,8 @@ TFT_eSPI tft = TFT_eSPI(); // Invoke custom library
 SPIClass sdSPI(VSPI);
 #define IP5306_ADDR 0X75
 #define IP5306_REG_SYS_CTL0 0x00
+
+Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
 uint8_t state = 0;
 Button2 *pBtns = nullptr;
@@ -1426,6 +1429,15 @@ void mainMenu(){
 void setup() {
   Serial.begin(115200);
   Barcode.begin(115200, SERIAL_8N1, 33, 26);
+
+  //LED Driver
+  pwm.begin();
+  pwm.setOscillatorFrequency(27000000);
+  pwm.setPWMFreq(1000);
+
+  for(int x = 0; x < 15; x++){
+    pwm.setPWM(x, 4096, 0);
+  }
 
   // Send command to exit sleep mode on Barcode scanner
   const uint8_t activate[] = {0x7E, 0x00, 0x08, 0x01, 0x00, 0xD9, 0x00, 0xAB, 0xCD};
