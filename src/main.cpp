@@ -941,6 +941,7 @@ void sweepQRCode(){
   headerTitle = "Read Escrow QRCode";
   drawHeader();
   clearScreen();
+  drawFooter("", "", "");
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
   tft.setTextDatum(MC_DATUM);
   tft.drawString(F("Please Scan Transaction QRCode"), tft.width() / 2, tft.height() / 2);
