@@ -1524,6 +1524,7 @@ void setup() {
   //spisd_test();
   buzzer_test();
   button_init();
+  playSound();
 
   btnscanT.attach_ms(30, button_loop);
   redrawHFT.attach(60, backgroundHeaderFooterDraw);
