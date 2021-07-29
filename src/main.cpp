@@ -507,9 +507,9 @@ void drawHeader(){
   }
   // Add bolt if currently charging
   if(!IP5306_GetBatteryFull() && IP5306_GetPowerSource()){
-    tft.drawLine(xpos-7, 7-2, xpos-9, 7-4, TFT_GREEN);
-    tft.drawLine(xpos-10, 7-3, xpos-11, 7-4, TFT_GREEN);
-    tft.drawLine(xpos-12, 7-3, xpos-14, 7-5, TFT_GREEN);
+    tft.drawLine(xpos-7, 7-2, xpos-9, 7-4, TFT_BLACK);
+    tft.drawLine(xpos-10, 7-3, xpos-11, 7-4, TFT_BLACK);
+    tft.drawLine(xpos-12, 7-3, xpos-14, 7-5, TFT_BLACK);
   }
   // Add plug if docked
   if(IP5306_GetPowerSource()){
